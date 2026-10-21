@@ -432,60 +432,169 @@ LESSONS.forEach(l=>{l.writing=WRITING[l.id]});
 const TOPICS=["Work & business","Money & shopping","Travel & transport","Health & body","Food & cooking","Family & friends","Technology","News & society","Nature & environment","Culture & traditions","Sport & free time","Education","Customer service","Stories","Science in daily life","Jobs & careers","Cities & places"];
 const KINDS=["Conversation","Story","Article","Phone call","Interview","Email","Discussion"];
 const SEC={vocab:{en:"Vocabulary",mg:"Voambolana"},grammar:{en:"Grammar",mg:"Fitsipi-pitenenana"},read:{en:"Reading",mg:"Famakiana"},listen:{en:"Listening",mg:"Fihainoana"},speak:{en:"Pronunciation",mg:"Fanononana"}};
-const READING=["Nirina opens her small shop at seven every morning. She sells rice, oil, soap and phone credit.","Business is slow in the morning but busy after five, when people come home from work.","Last year she saved enough money to buy a fridge, so now she can also sell cold drinks. Next year, she hopes to open a second shop near the bus station."];
-const TEST=[
- {s:"vocab",q:"A person who drives a bus is a ___.",o:["driver","teacher","farmer","seller"],a:0},
- {s:"vocab",q:"The opposite of “cheap” is ___.",o:["small","expensive","fast","old"],a:1},
- {s:"vocab",q:"Which English word means “rahampitso” (demain)?",o:["yesterday","today","tomorrow","tonight"],a:2},
- {s:"vocab",q:"I worked all day. Now I am very ___.",o:["tired","early","cheap","wet"],a:0},
- {s:"vocab",q:"Which phrase means the same as “improve”?",o:["get worse","get better","stop","forget"],a:1},
- {s:"grammar",q:"He ___ in a warehouse.",o:["work","works","working","are work"],a:1},
- {s:"grammar",q:"Yesterday we ___ to the beach.",o:["go","goes","went","going"],a:2},
- {s:"grammar",q:"There ___ three people in the office.",o:["is","are","am","be"],a:1},
- {s:"grammar",q:"I have lived here ___ 2019.",o:["since","for","from","during"],a:0},
- {s:"grammar",q:"If it rains tomorrow, we ___ stay at home.",o:["will","would","did","are"],a:0},
- {s:"read",q:"When is Nirina's shop busiest?",o:["At seven in the morning","At lunchtime","After five","At midnight"],a:2},
- {s:"read",q:"Why did Nirina buy a fridge?",o:["To keep rice","To sell cold drinks","For her house","Because it was cheap"],a:1},
- {s:"read",q:"What is her plan for next year?",o:["Close the shop","Sell phones","Open a second shop","Buy a bus"],a:2},
- {s:"listen",audio:"The bus leaves at half past three.",q:"When does the bus leave?",o:["3:30","3:15","2:30","3:45"],a:0},
- {s:"listen",audio:"Could you bring me two bottles of water and one coffee, please?",q:"What does the person want?",o:["One water and two coffees","Two waters and one coffee","Two coffees only","Three bottles of water"],a:1},
- {s:"listen",audio:"I'm sorry, the manager isn't here today. He'll be back on Monday.",q:"When will the manager be back?",o:["Today","Tomorrow","On Sunday","On Monday"],a:3},
- {s:"speak",text:"I work every day from Monday to Friday."},
- {s:"speak",text:"Thank you very much for your help."},
- {s:"speak",text:"I think learning English is important for my future."}
-];
-
-const LEVEL_TESTS={
- 1:[
-  {s:"vocab",q:"“Lafo” in English is ___.",o:["cheap","expensive","sweet","fresh"],a:1},
-  {s:"vocab",q:"A person who grows rice is a ___.",o:["teacher","farmer","driver","seller"],a:1},
-  {s:"vocab",q:"The day after today is ___.",o:["yesterday","tomorrow","morning","evening"],a:1},
-  {s:"grammar",q:"My mother ___ clothes at the market.",o:["sell","sells","selling"],a:1},
-  {s:"grammar",q:"___ much is this shirt?",o:["What","How","Where"],a:1},
-  {s:"grammar",q:"We ___ dinner together every evening.",o:["eats","eat","eating"],a:1},
-  {s:"read",p:"Tojo works in a warehouse in Antananarivo. He starts at eight o'clock and finishes at five. At lunch he eats rice with his friends. After work, he goes to an English class.",q:"What does Tojo do after work?",o:["He eats rice.","He goes to an English class.","He sleeps.","He goes to the market."],a:1},
-  {s:"read",p:"Tojo works in a warehouse in Antananarivo. He starts at eight o'clock and finishes at five. At lunch he eats rice with his friends. After work, he goes to an English class.",q:"When does Tojo finish work?",o:["At eight","At twelve","At five","At seven"],a:2},
-  {s:"listen",audio:"Two kilos of tomatoes cost three thousand ariary.",q:"How much are two kilos of tomatoes?",o:["2,000 ariary","3,000 ariary","300 ariary","4,000 ariary"],a:1},
-  {s:"listen",audio:"My sister lives in Fianarantsoa with her husband.",q:"Who lives in Fianarantsoa?",o:["My brother","My sister","My mother","My friend"],a:1}],
- 2:[
-  {s:"vocab",q:"A fixed time to see the doctor is an ___.",o:["appointment","advice","habit","holiday"],a:0},
-  {s:"vocab",q:"If something is urgent, it is…",o:["not important","needed now","very cheap","finished"],a:1},
-  {s:"vocab",q:"The opposite of “arrive” is ___.",o:["stay","leave","travel","buy"],a:1},
-  {s:"grammar",q:"Last week we ___ to Toamasina.",o:["travel","travelled","will travel"],a:1},
-  {s:"grammar",q:"Tomorrow I ___ call the client.",o:["will","did","was"],a:0},
-  {s:"grammar",q:"You ___ sleep more.",o:["should","should to","shoulds"],a:0},
-  {s:"grammar",q:"She didn't ___ the bus.",o:["took","take","takes"],a:1},
-  {s:"read",p:"Last Saturday, Miora wanted to buy a new phone. The first shop was too expensive, so she went to a second shop near the bus station. The price there was 20% lower. She bought the phone and used the money she saved to buy a phone case.",q:"Why did Miora go to a second shop?",o:["The first shop was closed.","The first shop was too expensive.","She wanted a case.","Her friend told her."],a:1},
-  {s:"read",p:"Last Saturday, Miora wanted to buy a new phone. The first shop was too expensive, so she went to a second shop near the bus station. The price there was 20% lower. She bought the phone and used the money she saved to buy a phone case.",q:"What did she do with the money she saved?",o:["She bought a phone case.","She bought food.","She kept it.","She paid for the bus."],a:0},
-  {s:"listen",audio:"I'm afraid the meeting has moved from Tuesday to Thursday afternoon.",q:"When is the meeting now?",o:["Tuesday morning","Tuesday afternoon","Thursday afternoon","Thursday morning"],a:2}]
+// Question banks. Each test picks a fresh mix (questions not seen before first),
+// so retaking a test gives different questions, and the answer order changes too.
+const P_SHOP="Nirina opens her small shop at seven every morning. She sells rice, oil, soap and phone credit. Business is slow in the morning but busy after five, when people come home from work. Last year she saved enough money to buy a fridge, so now she can also sell cold drinks. Next year, she hopes to open a second shop near the bus station.";
+const P_DRIVER="Hery is a delivery driver in Toamasina. Every morning he loads his van at the warehouse and checks the list of customers. Most deliveries are small, but on Fridays he carries furniture, so a colleague helps him. When the roads are flooded in the rainy season, he calls the customers to change the delivery time.";
+const P_MOBILE="Many small shops in Antananarivo now accept mobile money. Owners say it is safer than keeping a lot of cash, and customers like not having to look for change. However, some older customers still prefer cash, and when the network is down, shops lose sales. For this reason, most owners accept both.";
+const P_MARKET="Every Saturday, Lova and her brother sell vegetables at the market in Analakely. They leave home at five in the morning to get a good place. In the dry season, tomatoes are cheap, so they sell more carrots and beans. They usually go home at two o'clock, when the market becomes quiet.";
+const P_REPAIR="Fano repairs phones in a small kiosk. Most customers bring phones with broken screens, but more and more come because their battery does not last. Fano says many problems could be avoided: people should use a good charger and not leave the phone in the sun. He gives every customer a one-month guarantee.";
+const TEST_BANK={
+ vocab:[
+  {d:1,q:"A person who drives a bus is a ___.",o:["driver","teacher","farmer","seller"],a:0},
+  {d:1,q:"I worked all day. Now I am very ___.",o:["tired","early","cheap","wet"],a:0},
+  {d:1,q:"Which English word means “rahampitso” (demain)?",o:["yesterday","today","tomorrow","tonight"],a:2},
+  {d:1,q:"The opposite of “big” is ___.",o:["small","tall","hot","new"],a:0},
+  {d:1,q:"You buy medicine at a ___.",o:["pharmacy","bakery","garage","library"],a:0},
+  {d:1,q:"Which English word means “vary” (riz)?",o:["bread","rice","beans","salt"],a:1},
+  {d:2,q:"The opposite of “cheap” is ___.",o:["small","expensive","fast","old"],a:1},
+  {d:2,q:"Which phrase means the same as “improve”?",o:["get worse","get better","stop","forget"],a:1},
+  {d:2,q:"If something is urgent, it is…",o:["not important","needed now","very cheap","finished"],a:1},
+  {d:2,q:"A fixed time to see the doctor is an ___.",o:["appointment","advice","habit","holiday"],a:0},
+  {d:2,q:"To “borrow” money means to…",o:["take it and give it back later","get it as a gift","lose it","count it"],a:0},
+  {d:2,q:"She missed the bus, so she arrived ___ for work.",o:["late","early","quick","ready"],a:0},
+  {d:3,q:"The manager was ill, so we had to ___ the meeting.",o:["postpone","pretend","prevent","provide"],a:0},
+  {d:3,q:"Something that happens “rarely” happens…",o:["not often","every day","very fast","at night"],a:0},
+  {d:3,q:"A “reliable” worker is someone you can ___.",o:["trust","forget","avoid","teach"],a:0},
+  {d:3,q:"“Sales went up significantly” means they went up…",o:["a lot","a little","slowly","again"],a:0},
+  {d:3,q:"To “negotiate” a price means to…",o:["discuss it until you agree","pay it at once","refuse it","forget it"],a:0}],
+ grammar:[
+  {d:1,q:"He ___ in a warehouse.",o:["work","works","working","are work"],a:1},
+  {d:1,q:"There ___ three people in the office.",o:["is","are","am","be"],a:1},
+  {d:1,q:"She ___ a teacher.",o:["is","are","am","be"],a:0},
+  {d:1,q:"___ you speak French?",o:["Do","Does","Are","Is"],a:0},
+  {d:1,q:"Yesterday we ___ to the beach.",o:["go","goes","went","going"],a:2},
+  {d:2,q:"I have lived here ___ 2019.",o:["since","for","from","during"],a:0},
+  {d:2,q:"If it rains tomorrow, we ___ stay at home.",o:["will","would","did","are"],a:0},
+  {d:2,q:"This bag is ___ than that one.",o:["heavier","heavy","heaviest","more heavy"],a:0},
+  {d:2,q:"I ___ TV when the phone rang.",o:["was watching","watch","am watching","watches"],a:0},
+  {d:2,q:"You ___ wear a helmet on a motorbike.",o:["should","should to","shoulds","musting"],a:0},
+  {d:3,q:"If I ___ more money, I would buy a car.",o:["had","have","will have","has"],a:0},
+  {d:3,q:"The goods ___ delivered yesterday afternoon.",o:["were","was","are","have"],a:0},
+  {d:3,q:"She asked me where ___.",o:["I lived","did I live","do I live","I am live"],a:0},
+  {d:3,q:"By the time we arrived, the shop ___.",o:["had closed","has closed","closes","is closing"],a:0},
+  {d:3,q:"He is used to ___ up early.",o:["getting","get","got","gets"],a:0}],
+ read:[
+  {g:"shop",p:P_SHOP,q:"When is Nirina's shop busiest?",o:["At seven in the morning","At lunchtime","After five","At midnight"],a:2},
+  {g:"shop",p:P_SHOP,q:"Why did Nirina buy a fridge?",o:["To keep rice","To sell cold drinks","For her house","Because it was cheap"],a:1},
+  {g:"shop",p:P_SHOP,q:"What is her plan for next year?",o:["Close the shop","Sell phones","Open a second shop","Buy a bus"],a:2},
+  {g:"driver",p:P_DRIVER,q:"Where does Hery load his van?",o:["At the warehouse","At the market","At his house","At the port"],a:0},
+  {g:"driver",p:P_DRIVER,q:"Why does a colleague help him on Fridays?",o:["He carries furniture.","He is tired.","The roads are flooded.","He has no van."],a:0},
+  {g:"driver",p:P_DRIVER,q:"What does Hery do when the roads are flooded?",o:["He calls customers to change the time.","He stays at home.","He walks.","He delivers at night."],a:0},
+  {g:"mobile",p:P_MOBILE,q:"Why do shop owners like mobile money?",o:["It is safer than keeping a lot of cash.","It is free.","Older customers prefer it.","The network is always fast."],a:0},
+  {g:"mobile",p:P_MOBILE,q:"What is one problem with mobile money?",o:["Shops lose sales when the network is down.","Customers need change.","It is too slow.","Banks are closed."],a:0},
+  {g:"mobile",p:P_MOBILE,q:"What do most owners do?",o:["Accept both cash and mobile money","Accept only cash","Accept only mobile money","Close their shops"],a:0},
+  {g:"market",p:P_MARKET,q:"Why do Lova and her brother leave home at five?",o:["To get a good place","Because the market closes early","To buy tomatoes","To catch the bus"],a:0},
+  {g:"market",p:P_MARKET,q:"What do they sell more of in the dry season?",o:["Carrots and beans","Tomatoes","Rice","Fruit"],a:0},
+  {g:"market",p:P_MARKET,q:"When do they usually go home?",o:["At two o'clock","At five o'clock","At noon","In the evening"],a:0},
+  {g:"repair",p:P_REPAIR,q:"Why do more and more customers come to Fano?",o:["Their battery does not last.","Their screen is broken.","They want a new phone.","They need a charger."],a:0},
+  {g:"repair",p:P_REPAIR,q:"What advice does Fano give?",o:["Use a good charger and keep the phone out of the sun.","Buy a new phone every year.","Never charge the phone.","Keep the phone in a bag."],a:0},
+  {g:"repair",p:P_REPAIR,q:"What does every customer get?",o:["A one-month guarantee","A free charger","A new screen","A discount"],a:0}],
+ listen:[
+  {audio:"The bus leaves at half past three.",q:"When does the bus leave?",o:["3:30","3:15","2:30","3:45"],a:0},
+  {audio:"Could you bring me two bottles of water and one coffee, please?",q:"What does the person want?",o:["One water and two coffees","Two waters and one coffee","Two coffees only","Three bottles of water"],a:1},
+  {audio:"I'm sorry, the manager isn't here today. He'll be back on Monday.",q:"When will the manager be back?",o:["Today","Tomorrow","On Sunday","On Monday"],a:3},
+  {audio:"The shop opens at nine and closes at six.",q:"When does the shop close?",o:["At six","At nine","At seven","At five"],a:0},
+  {audio:"Please call me back after lunch, around two o'clock.",q:"When should you call back?",o:["Around two o'clock","In the morning","Around twelve","Tomorrow"],a:0},
+  {audio:"We need fifteen chairs, not fifty.",q:"How many chairs do they need?",o:["15","50","5","55"],a:0},
+  {audio:"Turn left at the bank, and the pharmacy is on your right.",q:"Where is the pharmacy?",o:["Left at the bank, then on the right","Right at the bank, then on the left","Next to the school","Behind the bank"],a:0},
+  {audio:"The meeting has been moved from Tuesday to Thursday morning.",q:"When is the meeting now?",o:["Thursday morning","Tuesday morning","Thursday afternoon","Tuesday afternoon"],a:0},
+  {audio:"I'd like to pay by mobile money, if that's possible.",q:"How does the person want to pay?",o:["By mobile money","In cash","By card","Next week"],a:0}],
+ speak:[
+  {d:1,text:"I work every day from Monday to Friday."},
+  {d:1,text:"Thank you very much for your help."},
+  {d:1,text:"My family lives in a small house near the market."},
+  {d:1,text:"The shop opens at eight in the morning."},
+  {d:2,text:"Could you tell me how much this costs, please?"},
+  {d:2,text:"We delivered thirty boxes to the customer yesterday."},
+  {d:2,text:"I would like to book an appointment for next week."},
+  {d:3,text:"I think learning English is important for my future."},
+  {d:3,text:"The weather was so bad that the truck arrived three hours late."},
+  {d:3,text:"Although it was expensive, the quality was excellent."}]
 };
+const LEVEL_BANK={
+ 1:{vocab:[
+   {q:"“Lafo” in English is ___.",o:["cheap","expensive","sweet","fresh"],a:1},
+   {q:"A person who grows rice is a ___.",o:["teacher","farmer","driver","seller"],a:1},
+   {q:"The day after today is ___.",o:["yesterday","tomorrow","morning","evening"],a:1},
+   {q:"“Mora” (bon marché) in English is ___.",o:["cheap","expensive","heavy","new"],a:0},
+   {q:"You sleep in a ___.",o:["bed","kitchen","car","shop"],a:0},
+   {q:"Your mother's son is your ___.",o:["brother","sister","uncle","father"],a:0},
+   {q:"We use a ___ to call people.",o:["phone","spoon","chair","bag"],a:0}],
+  grammar:[
+   {q:"My mother ___ clothes at the market.",o:["sell","sells","selling"],a:1},
+   {q:"___ much is this shirt?",o:["What","How","Where"],a:1},
+   {q:"We ___ dinner together every evening.",o:["eats","eat","eating"],a:1},
+   {q:"They ___ at home now.",o:["are","is","am"],a:0},
+   {q:"I ___ like coffee.",o:["don't","doesn't","not"],a:0},
+   {q:"___ is your name?",o:["What","Who","How"],a:0},
+   {q:"She has two ___.",o:["children","child","childs"],a:0}],
+  read:[
+   {g:"tojo",p:"Tojo works in a warehouse in Antananarivo. He starts at eight o'clock and finishes at five. At lunch he eats rice with his friends. After work, he goes to an English class.",q:"What does Tojo do after work?",o:["He eats rice.","He goes to an English class.","He sleeps.","He goes to the market."],a:1},
+   {g:"tojo",p:"Tojo works in a warehouse in Antananarivo. He starts at eight o'clock and finishes at five. At lunch he eats rice with his friends. After work, he goes to an English class.",q:"When does Tojo finish work?",o:["At eight","At twelve","At five","At seven"],a:2},
+   {g:"soa",p:"Soa has a small restaurant. She cooks rice, chicken and vegetables. Her restaurant is open every day except Sunday. On Sunday she visits her parents in the countryside.",q:"When is the restaurant closed?",o:["On Sunday","On Saturday","Every day","On Monday"],a:0},
+   {g:"soa",p:"Soa has a small restaurant. She cooks rice, chicken and vegetables. Her restaurant is open every day except Sunday. On Sunday she visits her parents in the countryside.",q:"What does Soa do on Sunday?",o:["She visits her parents.","She cooks chicken.","She opens the restaurant.","She goes to the market."],a:0}],
+  listen:[
+   {audio:"Two kilos of tomatoes cost three thousand ariary.",q:"How much are two kilos of tomatoes?",o:["2,000 ariary","3,000 ariary","300 ariary","4,000 ariary"],a:1},
+   {audio:"My sister lives in Fianarantsoa with her husband.",q:"Who lives in Fianarantsoa?",o:["My brother","My sister","My mother","My friend"],a:1},
+   {audio:"The bank opens at eight thirty.",q:"When does the bank open?",o:["8:30","8:00","9:30","8:13"],a:0},
+   {audio:"I have three children: two boys and a girl.",q:"How many boys?",o:["Two","Three","One","Four"],a:0},
+   {audio:"The red bag is mine. The blue one is my friend's.",q:"Which bag is the speaker's?",o:["The red one","The blue one","Both","Neither"],a:0}]},
+ 2:{vocab:[
+   {q:"A fixed time to see the doctor is an ___.",o:["appointment","advice","habit","holiday"],a:0},
+   {q:"If something is urgent, it is…",o:["not important","needed now","very cheap","finished"],a:1},
+   {q:"The opposite of “arrive” is ___.",o:["stay","leave","travel","buy"],a:1},
+   {q:"A person who buys from a shop is a ___.",o:["customer","manager","supplier","driver"],a:0},
+   {q:"To “repair” something means to…",o:["fix it","sell it","break it","clean it"],a:0},
+   {q:"If you are “in a hurry”, you are…",o:["trying to be quick","very tired","angry","lost"],a:0},
+   {q:"A “receipt” is…",o:["a paper that shows what you paid","a kind of food","a bank","a delivery van"],a:0}],
+  grammar:[
+   {q:"Last week we ___ to Toamasina.",o:["travel","travelled","will travel"],a:1},
+   {q:"Tomorrow I ___ call the client.",o:["will","did","was"],a:0},
+   {q:"You ___ sleep more.",o:["should","should to","shoulds"],a:0},
+   {q:"She didn't ___ the bus.",o:["take","took","takes"],a:0},
+   {q:"I'm going ___ the market later.",o:["to","at","in"],a:0},
+   {q:"This phone is ___ than my old one.",o:["better","more good","best"],a:0},
+   {q:"How long ___ you worked here?",o:["have","has","are"],a:0}],
+  read:[
+   {g:"miora",p:"Last Saturday, Miora wanted to buy a new phone. The first shop was too expensive, so she went to a second shop near the bus station. The price there was 20% lower. She bought the phone and used the money she saved to buy a phone case.",q:"Why did Miora go to a second shop?",o:["The first shop was closed.","The first shop was too expensive.","She wanted a case.","Her friend told her."],a:1},
+   {g:"miora",p:"Last Saturday, Miora wanted to buy a new phone. The first shop was too expensive, so she went to a second shop near the bus station. The price there was 20% lower. She bought the phone and used the money she saved to buy a phone case.",q:"What did she do with the money she saved?",o:["She bought a phone case.","She bought food.","She kept it.","She paid for the bus."],a:0},
+   {g:"rivo",p:"Rivo started a new job at a hotel in Nosy Be. In the first week he worked at reception and learned to answer the phone in English. The manager was happy with him, so next month he will also show tourists around the island.",q:"What did Rivo learn in his first week?",o:["To answer the phone in English","To cook","To drive a boat","To clean rooms"],a:0},
+   {g:"rivo",p:"Rivo started a new job at a hotel in Nosy Be. In the first week he worked at reception and learned to answer the phone in English. The manager was happy with him, so next month he will also show tourists around the island.",q:"What will Rivo do next month?",o:["Show tourists around the island","Leave the hotel","Work in the kitchen","Go to Antananarivo"],a:0}],
+  listen:[
+   {audio:"I'm afraid the meeting has moved from Tuesday to Thursday afternoon.",q:"When is the meeting now?",o:["Tuesday morning","Tuesday afternoon","Thursday afternoon","Thursday morning"],a:2},
+   {audio:"The delivery will arrive between ten and eleven tomorrow morning.",q:"When will the delivery arrive?",o:["Tomorrow, 10 to 11 a.m.","Today, 10 to 11 a.m.","Tomorrow afternoon","Tonight"],a:0},
+   {audio:"Sorry, we've sold out of the large size. We only have medium and small.",q:"Which size is not available?",o:["Large","Medium","Small","All of them"],a:0},
+   {audio:"The doctor can see you on Friday at a quarter to four.",q:"When is the appointment?",o:["Friday at 3:45","Friday at 4:15","Thursday at 3:45","Friday at 4:45"],a:0},
+   {audio:"Please send me the price list by email before Monday.",q:"What should you send?",o:["The price list","The goods","Money","A photo"],a:0}]}
+};
+// question id (to remember what was already asked)
+const qid=it=>(it.q||"")+"|"+(it.audio||it.text||"")+"|"+(it.g||"");
+// pick n from a pool: questions not asked before come first, in random order
+function pickFresh(pool,n){const seen=new Set(S.qSeen||[]),un=shuffle(pool.filter(x=>!seen.has(qid(x)))),old=shuffle(pool.filter(x=>seen.has(qid(x))));return un.concat(old).slice(0,n)}
+// one reading passage (all its questions), preferring a passage not seen before
+function pickPassage(pool){const gs=[...new Set(pool.map(x=>x.g))],seen=new Set(S.qSeen||[]);
+  const fresh=gs.filter(g=>pool.filter(x=>x.g===g).every(x=>!seen.has(qid(x))));
+  const g=(fresh.length?shuffle(fresh):shuffle(gs))[0];return pool.filter(x=>x.g===g)}
+// answers in a new order each time
+function mixOptions(it){if(!it.o)return {...it};const order=shuffle(it.o.map((_,i)=>i));return {...it,o:order.map(i=>it.o[i]),a:order.indexOf(it.a)}}
+function remember(items){S.qSeen=[...new Set([...(S.qSeen||[]),...items.map(qid)])].slice(-400);save()}
+function buildPlacement(){const B=TEST_BANK,byD=(pool,q)=>Object.entries(q).flatMap(([d,n])=>pickFresh(pool.filter(x=>x.d==d),n));
+  const items=[...byD(B.vocab,{1:2,2:2,3:1}).map(x=>({...x,s:"vocab"})),...byD(B.grammar,{1:2,2:2,3:1}).map(x=>({...x,s:"grammar"})),
+    ...pickPassage(B.read).map(x=>({...x,s:"read"})),...pickFresh(B.listen,3).map(x=>({...x,s:"listen"})),...byD(B.speak,{1:1,2:1,3:1}).map(x=>({...x,s:"speak"}))];
+  return items.map(mixOptions)}
+function buildLevelTest(lv){const B=LEVEL_BANK[lv];
+  const items=[...pickFresh(B.vocab,3).map(x=>({...x,s:"vocab"})),...pickFresh(B.grammar,3).map(x=>({...x,s:"grammar"})),
+    ...pickPassage(B.read).map(x=>({...x,s:"read"})),...pickFresh(B.listen,2).map(x=>({...x,s:"listen"}))];
+  return items.map(mixOptions)}
+const LEVEL_TESTS={1:true,2:true}; // Levels 1–2 come from the banks above; Levels 3–4 are written fresh by the AI teacher
 
 /* ================= STATE ================= */
 const KEY="miteny-english-v1";
 const CODE_WORDS="mango river lemur rice sun moon star cloud rain tree leaf stone lake hill sea fish bird frog bean corn salt honey bread milk tea apple lemon orange banana vanilla pepper green blue red gold silver happy quick calm brave kind bright warm cool soft tall small house door road bridge boat train book pen chair table lamp drum song dance smile friend".split(" ");
 const CODE_RE=/^[a-z]+-[a-z]+-[a-z]+-\d{4}$/;
 function makeCode(){const r=new Uint32Array(4);crypto.getRandomValues(r);return [0,1,2].map(i=>CODE_WORDS[r[i]%CODE_WORDS.length]).join("-")+"-"+String(r[3]%10000).padStart(4,"0")}
-function fresh(){return {placement:null,history:[],level:null,lessons:{},hard:{},seen:{},days:[],slow:false,levelUps:[],code:makeCode(),codeSaved:false,updatedAt:0,syncedAt:0,aiLessons:[],mistakes:[],sounds:[],writing:{},voiceURI:null,pitch:1.15,rate:0.92}}
+function fresh(){return {qSeen:[],placement:null,history:[],level:null,lessons:{},hard:{},seen:{},days:[],slow:false,levelUps:[],code:makeCode(),codeSaved:false,updatedAt:0,syncedAt:0,aiLessons:[],mistakes:[],sounds:[],writing:{},voiceURI:null,pitch:1.15,rate:0.92}}
 let S;
 try{S=Object.assign(fresh(),JSON.parse(localStorage.getItem(KEY)||"null")||{})}catch(e){S=fresh()}
 if(!S.code||!CODE_RE.test(S.code))S.code=makeCode();
@@ -572,7 +681,7 @@ function levelUpCard(){const st=levelUpState();if(st.none)return "";
  return `<section class="panel stack tight"><div class="row" style="justify-content:space-between"><h3>Level-up test</h3><span class="muted" style="font-size:.85rem;font-variant-numeric:tabular-nums">${st.done}/${st.total} lessons</span></div><div class="meter"><i style="width:${pct(st.done/st.total)}%"></i></div>
   <p class="muted" style="font-size:.9rem">${st.ai?`Finish ${st.total} Level ${st.lv} lessons`:`Finish all Level ${st.lv} lessons`} with an average of 70% or more to unlock the test for Level ${st.lv+1}.${st.done?` Your average now: ${st.avg}%.`:""}<span class="mg">Vitao ny lesona rehetra amin'ny ambaratonga ${st.lv} (70% farafahakeliny).</span></p></section>`}
 function startLevelUp(){const lv=S.level||1;
- if(LEVEL_TESTS[lv]){T={items:shuffle(LEVEL_TESTS[lv]),kind:"levelup",level:lv,i:0,ans:[],spk:{}};renderTest();return}
+ if(LEVEL_TESTS[lv]){const items=shuffle(buildLevelTest(lv));remember(items);T={items,kind:"levelup",level:lv,i:0,ans:[],spk:{}};renderTest();return}
  showLoading("Preparing your level-up test…","Ny mpampianatra AI dia manomana ny fitsapana.",4500);
  aiCall("levelup",{level:lv,hardWords:Object.keys(S.hard).map(k=>W[k]&&W[k][0]).filter(Boolean)},loadingProgress).then(r=>{
   const items=(r.items||[]).filter(it=>["vocab","grammar","read","listen"].includes(it.s)&&Array.isArray(it.o)&&it.o.length>=2&&Number.isInteger(it.a)&&it.a>=0&&it.a<it.o.length&&it.q&&(it.s!=="read"||it.p)&&(it.s!=="listen"||it.audio)).slice(0,10);
@@ -749,12 +858,12 @@ function home(){
 
 /* ================= PLACEMENT TEST ================= */
 let T=null;
-function startTest(){T={items:TEST,kind:"placement",i:0,ans:[],spk:{}};renderTest()}
+function startTest(){const items=buildPlacement();remember(items);T={items,kind:"placement",i:0,ans:[],spk:{}};renderTest()}
 function renderTest(){
  window.scrollTo(0,0);
  const it=T.items[T.i],n=T.items.length,sec=SEC[it.s];
  let body="";
- if(it.s==="read")body+=`<div class="passage reading">${(it.p?[it.p]:READING).map(p=>`<p>${esc(p)}</p>`).join("")}</div>`;
+ if(it.s==="read")body+=`<div class="passage reading">${[it.p].map(p=>`<p>${esc(p)}</p>`).join("")}</div>`;
  if(it.s==="listen")body+=`<div class="row"><button class="btn big" data-act="tplay">${ICON.spk} Play</button><button class="btn ghost" data-act="tplayslow">Slow</button></div>`;
  if(it.s==="speak"){T.spkId=null;const blk=speakBlock(it.text);T.spkId="s"+spkN;
   body+=`<p class="inst">Tap Listen, then tap Record and read the sentence aloud.<span class="mg">Henoy aloha, avy eo tsindrio Record ary vakio mafy ilay fehezanteny.</span></p>${blk}<button class="btn primary" data-act="tnext">${T.i===n-1?"See my result":"Next"}</button>`}
@@ -776,7 +885,7 @@ function testNext(){
 }
 function finishTest(){
  const sec={vocab:[0,0],grammar:[0,0],read:[0,0],listen:[0,0]};const sp=[];
- TEST.forEach((it,i)=>{if(it.s==="speak"){const v=T.spk[i];if(typeof v==="number")sp.push(v)}else{sec[it.s][1]++;if(T.ans[i])sec[it.s][0]++}});
+ T.items.forEach((it,i)=>{if(it.s==="speak"){const v=T.spk[i];if(typeof v==="number")sp.push(v)}else{sec[it.s][1]++;if(T.ans[i])sec[it.s][0]++}});
  let c=0,t=0;const res={};Object.entries(sec).forEach(([k,[a,b]])=>{c+=a;t+=b;res[k]=a/b});
  res.speak=sp.length?sp.reduce((a,b)=>a+b,0)/sp.length:null;
  const overall=c/t,level=overall<0.35?1:overall<0.7?2:3;
