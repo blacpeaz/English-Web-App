@@ -354,10 +354,14 @@ export default async (req, context) => {
 
   if (spec.gemini) {
     const free = await askGemini(body.task, system, user, spec.max);
-    if (free) return asStream(free, left);
+    if (free) {
+      console.log(`Answered by Gemini: ${body.task}`);
+      return asStream(free, left);
+    }
   }
   if (!key) return json({ error: "ai-busy" }, 502);
 
+  console.log(`Answered by Claude: ${body.task}`);
   const model = spec.fast ? Netlify.env.get("AI_FAST_MODEL") || "claude-haiku-5-5" : Netlify.env.get("AI_MODEL") || "claude-sonnet-5-5";
 
   const upstream = await fetch("https://api.anthropic.com/v1/messages", {
