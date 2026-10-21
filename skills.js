@@ -248,8 +248,8 @@ function levelChecklist(lv) {
   return { items, ready: items.every((it) => it.ok) };
 }
 function checklistHTML(c) {
-  return `<div class="checks">${c.items.map((it) => `<div class="chk${it.ok ? " ok" : ""}"><span>${it.ok ? "✓" : "○"}</span><span>${it.label}</span><b>${Math.min(it.have, it.need)}/${it.need}${it.min ? ` · ${it.have ? it.avg + "%" : "–"}` : ""}</b></div>`).join("")}</div>
-   <p class="muted" style="font-size:.82rem">Averages must be ${c.items[0].min}% for lessons and 60% for speaking, listening and writing.</p>`;
+  return `<div class="checks">${c.items.map((it) => `<div class="chk${it.ok ? " ok" : ""}"><span>${it.ok ? "✓" : "○"}</span><span>${it.label}</span><b>${Math.min(it.have, it.need)}/${it.need}${it.min ? ` · ${it.have ? "avg " + it.avg + "%" : "no score yet"}` : " · 70% each"}</b></div>`).join("")}</div>
+   <p class="muted" style="font-size:.82rem">Average needed: 70% for reading lessons, 60% for speaking, listening and writing. A grammar topic counts when you score 70% or more on it.<span class="mg">Ny salanisa ilaina: 70% amin'ny famakiana, 60% amin'ny fitenenana, fihainoana ary fanoratana. Isaina ny lohahevitra fitsipi-pitenenana rehefa mahazo 70% farafahakeliny.</span></p>`;
 }
 
 /* ================= GRAMMAR SCREENS ================= */
