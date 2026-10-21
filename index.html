@@ -1148,8 +1148,10 @@ function dailyCard(){
  const d=S.daily&&S.daily.date===today()?S.daily:null,bank=Object.keys(S.vocab||{}).length;
  if(d&&d.phase==="done")return `<section class="panel stack tight daily"><p class="kicker">Daily words · Teny isan'andro</p><h3>Done for today ✓</h3><p class="muted">${d.keys.length} new word${d.keys.length===1?"":"s"}${d.review.length?` and ${d.review.length} reviewed`:""}. Your word bank has ${bank} words. Come back tomorrow for new words.<span class="mg">Vita ho anio. Miverena rahampitso hianatra teny vaovao.</span></p>${d.keys.some(k=>d.sent[k]&&d.sent[k].pending&&!d.sent[k].res)?`<button class="btn primary" data-act="dpending">Check my saved sentences</button>`:`<button class="btn ghost" data-act="dailysummary" style="align-self:flex-start">See today's words</button>`}</section>`;
  const due=dueReviewKeys().length,n=S.dailyCount||6;
- return `<section class="panel stack tight daily"><p class="kicker">Daily words · Teny isan'andro</p><h3>${d?"Continue today's words":"Today's new words"}</h3><p class="muted">${d?`${d.keys.length} new words${d.review.length?` + ${d.review.length} to review`:""}`:`${n} new words${due?` + ${Math.min(due,6)} to review`:""}`} · about 10 minutes. Learn them, see examples, then write your own sentences.<span class="mg">Mianara teny vaovao, jereo ny ohatra, dia manorata fehezanteny.</span></p><button class="btn primary" data-act="daily">${d?"Continue":"Start today's words"}</button></section>`;
+ const redo=d&&d.note&&!Object.keys(d.sent).some(k=>d.sent[k].res)?`<button class="link" data-act="dredo" style="align-self:flex-start">Get new words from the AI teacher instead</button>`:"";
+ return `<section class="panel stack tight daily"><p class="kicker">Daily words · Teny isan'andro</p><h3>${d?"Continue today's words":"Today's new words"}</h3><p class="muted">${d?`${d.keys.length} new words${d.review.length?` + ${d.review.length} to review`:""}`:`${n} new words${due?` + ${Math.min(due,6)} to review`:""}`} · about 10 minutes. Learn them, see examples, then write your own sentences.<span class="mg">Mianara teny vaovao, jereo ny ohatra, dia manorata fehezanteny.</span></p><button class="btn primary" data-act="daily">${d?"Continue":"Start today's words"}</button>${redo}</section>`;
 }
+function redoDaily(){const d=S.daily;if(!d)return;d.keys.forEach(k=>{if(S.vocab[k]&&!S.vocab[k].box){delete S.vocab[k];delete W[k]}});S.daily=null;save();beginDaily()}
 function startDaily(){const d=S.daily;D={flip:false};if(d&&d.date===today())return d.phase==="done"?dailySummary():renderDaily();dailyIntro()}
 function dailyIntro(){window.scrollTo(0,0);const n=S.dailyCount||6,due=dueReviewKeys().length;
  view.innerHTML=`<div class="top"><button class="x" data-act="home" aria-label="Back">${ICON.x}</button></div><div class="stack">
@@ -1160,9 +1162,15 @@ function dailyIntro(){window.scrollTo(0,0);const n=S.dailyCount||6,due=dueReview
  <div class="stack tight"><p class="kicker">How many new words today?</p><div class="row">${[4,6,8,10].map(x=>`<button class="btn toggle" data-act="dcount" data-n="${x}" aria-pressed="${x===n}">${x} words</button>`).join("")}</div></div>
  <button class="btn primary" data-act="dstart">Start · Atombohy</button></div>`;
 }
-function localWords(n){const have=new Set(Object.values(S.vocab||{}).map(v=>v.en.toLowerCase()));const out=[];
- for(const l of LESSONS)for(const k of l.words){const w=W[k];if(!w||have.has(w[0].toLowerCase())||out.length>=n)continue;have.add(w[0].toLowerCase());out.push({en:w[0],say:w[1],pos:"",mg:w[2],fr:w[3],def:w[4],ex:[w[5]]})}
+/* Words without the AI: take them from lessons at the learner's own level (AI lessons first), never from lower levels. */
+function localWords(n,lv){const have=new Set(Object.values(S.vocab||{}).map(v=>v.en.toLowerCase()));const out=[];
+ const src=[...(S.aiLessons||[]).filter(l=>l.level>=lv),...LESSONS.filter(l=>l.level>=lv)];
+ for(const l of src)for(const k of l.words){const w=W[k];if(!w||have.has(String(w[0]).toLowerCase())||out.length>=n)continue;have.add(String(w[0]).toLowerCase());out.push({en:w[0],say:w[1],pos:"",mg:w[2],fr:w[3],def:w[4],ex:[w[5]].filter(Boolean)})}
  return out}
+function dailyNoAI(e){const m=aiMsg(e);window.scrollTo(0,0);
+ view.innerHTML=`<div class="loading"><h2>The AI teacher needs the PIN</h2><p>${esc(m[0])}<span class="mg">${esc(m[1])}</span></p>
+ <button class="btn primary" data-act="dstart" style="max-width:340px">Enter the PIN · Ampidiro ny PIN</button>
+ <button class="btn" data-act="home" style="max-width:340px;width:100%;min-height:50px">Back to my course</button></div>`}
 async function beginDaily(){
  const n=S.dailyCount||6,lv=S.level||1;
  // Words left unfinished on an earlier day come back as reviews.
@@ -1176,7 +1184,8 @@ async function beginDaily(){
    words.push({en,say:String(w.say||""),pos:String(w.pos||""),mg:String(w.mg||""),fr:String(w.fr||""),def:String(w.def||""),ex:(w.examples||[]).map(String).filter(Boolean).slice(0,3)})});
   if(!words.length)throw new AIError("default");
  }catch(e){
-  words=localWords(n);note=aiMsg(e)[0];
+  if(["need-pin","bad-pin","pin-not-set","locked"].includes(e.code))return dailyNoAI(e);
+  words=localWords(n,lv);note=aiMsg(e)[0];
   if(!words.length&&!dueReviewKeys().length)return aiFailed(e);
  }
  const keys=[];words.forEach(w=>{let k=vslug(w.en);while(S.vocab[k])k+="x";S.vocab[k]=Object.assign(w,{box:0,due:null,added:today()});keys.push(k)});
@@ -1321,6 +1330,7 @@ document.addEventListener("click",e=>{
   case "daily":startDaily();break;
   case "dcount":S.dailyCount=+b.dataset.n;save();dailyIntro();break;
   case "dstart":beginDaily();break;
+  case "dredo":redoDaily();break;
   case "dflip":D.flip=true;renderCard();break;
   case "dnext":S.daily.i++;D.flip=false;save();renderCard();break;
   case "drate":rateCard(b.dataset.v==="1");break;

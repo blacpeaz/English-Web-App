@@ -21,6 +21,15 @@ const str = (v, max) => String(v ?? "").slice(0, max);
 const list = (v, n, max) => (Array.isArray(v) ? v.slice(0, n).map((x) => str(x, max)) : []);
 const level = (v) => Math.min(5, Math.max(1, parseInt(v, 10) || 1));
 
+// Which words to teach at each level: aim at the top of the learner's level and the next one up.
+const WORD_BAND = {
+  1: "everyday A1-A2 words beyond the very first basics (e.g. borrow, kitchen, angry, cheap, early, receipt).",
+  2: "A2-B1 words (e.g. reliable, deliver, complain, deadline, customer, improve, take care of).",
+  3: "B1-B2 words, collocations and phrasal verbs (e.g. negotiate, shortage, persuade, figure out, in charge of, make a profit, sustainable, reluctant). Avoid A1-A2 words such as buy, happy, work, deliver or customer.",
+  4: "B2-C1 words, phrasal verbs, collocations and idioms (e.g. outweigh, setback, come up with, feasible, take for granted, cut corners, in the long run). Avoid anything at B1 or below.",
+  5: "C1-C2 words and expressions (e.g. mitigate, nuance, inadvertently, by and large, scrutinise, a double-edged sword, to be at odds with). Avoid anything at B2 or below.",
+};
+
 const LEARNER =
   "The learner is an adult Malagasy speaker who lives and works in Madagascar. Malagasy is their first language and they know some French. " +
   "They read a little English and their pronunciation is weak. The goal is to bring them to an advanced, confident level.";
@@ -198,8 +207,9 @@ function build(task, p) {
     return {
       system:
         `You choose vocabulary for the Miteny English app. ${LEARNER}\n` +
-        `Give ${n} useful English words or short phrases to learn today, right for CEFR ${CEFR[lv]} (app level ${lv} of 5). ` +
-        `Mix everyday words, work words and, from level 3 up, words for opinions, news and ideas; from level 4 up include some phrasal verbs, collocations and idioms. ` +
+        `Give ${n} English words or short phrases to learn today. The learner is at CEFR ${CEFR[lv]} (app level ${lv} of 5) and wants to grow towards advanced, ` +
+        `so choose words the learner most likely does NOT know yet: ${WORD_BAND[lv]} The examples only show the level; do not simply reuse them. ` +
+        `Never give basic words below that band. Mix nouns, verbs, adjectives and useful phrases; mix daily life, work and ideas. ` +
         `Lean towards the theme of the day but do not use only theme words. Never give a word from the "already_known" list. ` +
         `For each: en = the word or phrase; say = an easy sound guide with the stressed part in CAPITALS (no IPA), with a short note in brackets for silent letters or irregular forms; ` +
         `pos = part of speech (noun, verb, adjective, adverb, phrase, phrasal verb, idiom); mg = correct, natural standard Malagasy (if there is no direct word, a short Malagasy explanation); ` +
