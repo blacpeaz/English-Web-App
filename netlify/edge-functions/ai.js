@@ -107,13 +107,23 @@ const SCHEMAS = {
   },
 };
 
+// Structured outputs need "additionalProperties: false" on every object in the schema.
+function strict(schema) {
+  if (Array.isArray(schema)) return schema.map(strict);
+  if (!schema || typeof schema !== "object") return schema;
+  const out = {};
+  for (const [k, v] of Object.entries(schema)) out[k] = typeof v === "object" ? strict(v) : v;
+  if (out.type === "object") out.additionalProperties = false;
+  return out;
+}
+
 function build(task, p) {
   if (task === "lesson") {
     const lv = level(p.level);
     return {
       system:
         `You are an expert English teacher who writes lessons for the Miteny English app. ${LEARNER}\n\n` +
-        `Write ONE complete lesson at CEFR ${CEFR[lv]} (app level ${lv} of 5) and return it with the submit tool.\n` +
+        `Write ONE complete lesson at CEFR ${CEFR[lv]} (app level ${lv} of 5) and return it as JSON matching the schema.\n` +
         `Rules:\n` +
         `- Main text: ${TEXT_LEN[lv]} words, natural and interesting, on the given topic. Use the given kind (conversation lines have a speaker name in "who"; other kinds leave "who" empty and use one paragraph per line). Settings and names can be Malagasy or international; mix them.\n` +
         `- Grammar and vocabulary must fit the level. Weave in practice of the learner's weak points and difficult words when natural.\n` +
@@ -141,7 +151,7 @@ function build(task, p) {
     return {
       system:
         `You are a kind, precise English teacher. ${LEARNER}\n` +
-        `Check the learner's writing for the task. Judge it for app level ${lv} of 5 (CEFR ${CEFR[lv]}). Return with the submit tool:\n` +
+        `Check the learner's writing for the task. Judge it for app level ${lv} of 5 (CEFR ${CEFR[lv]}). Return JSON matching the schema:\n` +
         `- score 0-100 (how well it does the task and how accurate it is for this level; be encouraging but honest).\n` +
         `- corrected: their text with the smallest changes needed to be correct and natural.\n` +
         `- mistakes: up to 6 of the most important mistakes, each with the wrong part, the right version, why in simple English, and a short Malagasy explanation (mg).\n` +
@@ -220,8 +230,7 @@ export default async (req, context) => {
       max_tokens: spec.max,
       system,
       messages: [{ role: "user", content: user }],
-      tools: [{ name: "submit", description: "Submit the finished result.", input_schema: SCHEMAS[body.task] }],
-      tool_choice: { type: "tool", name: "submit" },
+      output_config: { format: { type: "json_schema", schema: strict(SCHEMAS[body.task]) } },
       stream: true,
     }),
   });

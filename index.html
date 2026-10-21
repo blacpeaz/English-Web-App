@@ -922,10 +922,11 @@ async function aiCallRaw(task,params,onProgress){
  const rd=r.body.getReader(),dec=new TextDecoder();let buf="",out="",stop=null;
  for(;;){const {done,value}=await rd.read();if(done)break;buf+=dec.decode(value,{stream:true});let i;
   while((i=buf.indexOf("\n"))>=0){const line=buf.slice(0,i).trim();buf=buf.slice(i+1);if(!line.startsWith("data:"))continue;let ev;try{ev=JSON.parse(line.slice(5))}catch(e){continue}
-   if(ev.type==="content_block_delta"&&ev.delta&&ev.delta.type==="input_json_delta"){out+=ev.delta.partial_json;if(onProgress)onProgress(out.length)}
+   if(ev.type==="content_block_delta"&&ev.delta&&(ev.delta.type==="text_delta"||ev.delta.type==="input_json_delta")){out+=ev.delta.type==="text_delta"?ev.delta.text:ev.delta.partial_json;if(onProgress)onProgress(out.length)}
    else if(ev.type==="message_delta"&&ev.delta&&ev.delta.stop_reason)stop=ev.delta.stop_reason;
    else if(ev.type==="error")throw new AIError(ev.error&&ev.error.type==="overloaded_error"?"ai-busy":"default")}}
  if(stop==="max_tokens")throw new AIError("too-long");
+ if(stop==="refusal")throw new AIError("default");
  try{return JSON.parse(out)}catch(e){throw new AIError("default")}
 }
 let LOAD={exp:1};
