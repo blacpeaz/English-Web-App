@@ -3,20 +3,10 @@
 // PUT  /api/progress  { code, updatedAt, data }   -> { ok, updatedAt }
 // The recovery code is never stored as-is: the storage key is a SHA-256 hash of it.
 import { getStore } from "@netlify/blobs";
+import { CODE_RE, keyFor, json } from "../shared/hash.mjs";
+export { keyFor };
 
-const CODE_RE = /^[a-z]+-[a-z]+-[a-z]+-\d{4}$/;
-const MAX_BYTES = 300_000;
-
-const json = (body, status = 200) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json", "cache-control": "no-store" },
-  });
-
-export async function keyFor(code) {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("miteny:" + code));
-  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
+const MAX_BYTES = 600_000;
 
 export async function handle(req, store) {
   if (req.method === "GET") {

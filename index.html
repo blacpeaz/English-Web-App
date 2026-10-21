@@ -180,6 +180,27 @@ button:focus-visible,.w:focus-visible{outline:3px solid var(--gold);outline-offs
 .sync{font-size:.78rem;font-weight:700;padding:3px 10px;border-radius:99px;background:var(--sunk);color:var(--muted);white-space:nowrap}
 .sync.ok{background:var(--green-soft);color:var(--green)}
 .review-item{border-left:3px solid var(--red);padding-left:12px;display:flex;flex-direction:column;gap:2px;font-size:.95rem}
+.textarea{width:100%;min-height:150px;padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font:1.02rem/1.5 var(--body);resize:vertical}
+.textarea:focus-visible{outline:3px solid var(--gold);outline-offset:1px}
+.ai-tag{font-size:.65rem;font-weight:700;letter-spacing:.08em;padding:1px 6px;border-radius:5px;background:var(--gold-soft);color:var(--ink);vertical-align:2px;margin-left:6px}
+.loading{display:flex;flex-direction:column;gap:14px;align-items:center;text-align:center;padding:48px 8px}
+.loading .bar{width:100%;max-width:320px;flex:none}
+.dots{display:flex;gap:8px}.dots i{width:10px;height:10px;border-radius:50%;background:var(--green);animation:dot 1.2s infinite ease-in-out}.dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
+@keyframes dot{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
+@media (prefers-reduced-motion:reduce){.dots i{animation:none}}
+.corr{background:var(--green-soft);border-radius:10px;padding:12px 14px;white-space:pre-wrap}
+.mist{display:flex;flex-direction:column;gap:2px;border-left:3px solid var(--red);padding-left:10px;font-size:.95rem}
+.mist s{color:var(--red)}.mist b{color:var(--green)}
+.voices{display:flex;flex-direction:column;gap:8px;max-height:42vh;overflow:auto;padding:2px}
+.vrow{display:flex;align-items:center;gap:10px;border:1.5px solid var(--line);border-radius:12px;padding:8px 10px;background:var(--surface)}
+.vrow.on{border-color:var(--green);background:var(--green-soft)}
+.vrow .vpick{flex:1;min-width:0;text-align:left;background:none;border:0;padding:4px 0}
+.vrow .vpick small{display:block;color:var(--muted);font-size:.8rem}
+.slider{display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center;font-size:.92rem}
+.slider input{grid-column:1/-1;width:100%;accent-color:var(--green)}
+.slider .ends{grid-column:1/-1;display:flex;justify-content:space-between;color:var(--muted);font-size:.78rem}
+.iconbtn{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:6px 12px;border-radius:999px;border:1.5px solid var(--line);background:var(--surface);font-weight:700;font-size:.85rem}
+.iconbtn svg{width:16px;height:16px}
 .confirm{background:var(--red-soft);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
 </style>
 </head>
@@ -400,6 +421,16 @@ const LESSONS=[
    {t:"Small changes can help you feel better.",tip:"Finish each word cleanly: small, changes, help. Do not add a vowel at the end.",mg:"Aza ampiana zanatsoratra ny faran'ny teny."}]}
 ];
 
+const WRITING={
+ "l1-meet":{task:"Write 3–4 sentences to introduce yourself: your name, where you live, and where you work.",mg:"Soraty fehezanteny 3–4 hampahafantarana ny tenanao: ny anaranao, ny toerana onenanao ary ny toerana iasanao."},
+ "l1-market":{task:"Write a short conversation (4 lines) between you and a seller. Ask the price, then ask for a better price.",mg:"Soraty resaka fohy (andalana 4) eo aminao sy ny mpivarotra. Anontanio ny vidiny, dia angataho mba hampihena azy."},
+ "l1-family":{task:"Write 4–5 sentences about your family: who they are and what they do.",mg:"Soraty fehezanteny 4–5 momba ny fianakavianao: iza izy ireo ary inona no ataon'izy ireo."},
+ "l2-trip":{task:"Write 4–5 sentences about a trip you took. Use the past: went, saw, ate, stayed.",mg:"Soraty fehezanteny 4–5 momba ny dia nataonao. Ampiasao ny lasa: went, saw, ate, stayed."},
+ "l2-phone":{task:"Write a short, polite message to a client to move a meeting from Monday to Wednesday.",mg:"Soraty hafatra fohy sy am-panajana ho an'ny mpanjifa iray hamindrana fotoana avy amin'ny alatsinainy ho alarobia."},
+ "l2-sleep":{task:"Do you use your phone late at night? Write 4–5 sentences with your opinion and one piece of advice (use “should”).",mg:"Mampiasa finday alina be ve ianao? Soraty fehezanteny 4–5 milaza ny hevitrao sy torohevitra iray (ampiasao ny “should”)."}};
+LESSONS.forEach(l=>{l.writing=WRITING[l.id]});
+const TOPICS=["Work & business","Money & shopping","Travel & transport","Health & body","Food & cooking","Family & friends","Technology","News & society","Nature & environment","Culture & traditions","Sport & free time","Education","Customer service","Stories","Science in daily life","Jobs & careers","Cities & places"];
+const KINDS=["Conversation","Story","Article","Phone call","Interview","Email","Discussion"];
 const SEC={vocab:{en:"Vocabulary",mg:"Voambolana"},grammar:{en:"Grammar",mg:"Fitsipi-pitenenana"},read:{en:"Reading",mg:"Famakiana"},listen:{en:"Listening",mg:"Fihainoana"},speak:{en:"Pronunciation",mg:"Fanononana"}};
 const READING=["Nirina opens her small shop at seven every morning. She sells rice, oil, soap and phone credit.","Business is slow in the morning but busy after five, when people come home from work.","Last year she saved enough money to buy a fridge, so now she can also sell cold drinks. Next year, she hopes to open a second shop near the bus station."];
 const TEST=[
@@ -454,13 +485,17 @@ const KEY="miteny-english-v1";
 const CODE_WORDS="mango river lemur rice sun moon star cloud rain tree leaf stone lake hill sea fish bird frog bean corn salt honey bread milk tea apple lemon orange banana vanilla pepper green blue red gold silver happy quick calm brave kind bright warm cool soft tall small house door road bridge boat train book pen chair table lamp drum song dance smile friend".split(" ");
 const CODE_RE=/^[a-z]+-[a-z]+-[a-z]+-\d{4}$/;
 function makeCode(){const r=new Uint32Array(4);crypto.getRandomValues(r);return [0,1,2].map(i=>CODE_WORDS[r[i]%CODE_WORDS.length]).join("-")+"-"+String(r[3]%10000).padStart(4,"0")}
-function fresh(){return {placement:null,history:[],level:null,lessons:{},hard:{},seen:{},days:[],slow:false,levelUps:[],code:makeCode(),codeSaved:false,updatedAt:0,syncedAt:0}}
+function fresh(){return {placement:null,history:[],level:null,lessons:{},hard:{},seen:{},days:[],slow:false,levelUps:[],code:makeCode(),codeSaved:false,updatedAt:0,syncedAt:0,aiLessons:[],mistakes:[],sounds:[],writing:{},voiceURI:null,pitch:1.15,rate:0.92}}
 let S;
 try{S=Object.assign(fresh(),JSON.parse(localStorage.getItem(KEY)||"null")||{})}catch(e){S=fresh()}
 if(!S.code||!CODE_RE.test(S.code))S.code=makeCode();
 function persistLocal(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 function save(){S.updatedAt=Date.now();persistLocal();scheduleSync()}
 persistLocal();
+/* AI lessons carry their own glossary; register it so the word help works. */
+function registerAi(){(S.aiLessons||[]).forEach(l=>{if(l.gloss)Object.entries(l.gloss).forEach(([k,v])=>{W[k]=v})})}
+registerAi();
+const ALL=()=>LESSONS.concat(S.aiLessons||[]);
 
 /* ================= ONLINE BACKUP ================= */
 const API="/api/progress";const SYNC={state:"idle"};let syncTimer=null,syncBusy=false;
@@ -471,7 +506,7 @@ function syncText(){
 function setSync(st){SYNC.state=st;const el=document.getElementById("syncStatus");if(el){el.textContent=syncText();el.className="sync"+(st==="ok"?" ok":"")}}
 function scheduleSync(){clearTimeout(syncTimer);syncTimer=setTimeout(pushNow,1500)}
 function onHome(){return !!document.querySelector(".brand")}
-function adoptRemote(rec){const code=S.code;S=Object.assign(fresh(),rec.data,{code,codeSaved:true,updatedAt:rec.updatedAt,syncedAt:Date.now()});persistLocal();setSync("ok");if(onHome())home()}
+function adoptRemote(rec){const code=S.code;S=Object.assign(fresh(),rec.data,{code,codeSaved:true,updatedAt:rec.updatedAt,syncedAt:Date.now()});registerAi();persistLocal();setSync("ok");if(onHome())home()}
 async function pushNow(){
  if(syncBusy){scheduleSync();return}
  if(!navigator.onLine){setSync("offline");return}
@@ -511,7 +546,7 @@ async function doRestore(){
   if(!j){msg.textContent="Online backup works only in the installed app at miteny-english.netlify.app.";return}
   if(r.status===404){msg.textContent="No progress found for this code. Check the spelling and try again.";return}
   if(!r.ok)throw 0;
-  S=Object.assign(fresh(),j.data,{code,codeSaved:true,updatedAt:j.updatedAt,syncedAt:Date.now()});persistLocal();setSync("ok");home();
+  S=Object.assign(fresh(),j.data,{code,codeSaved:true,updatedAt:j.updatedAt,syncedAt:Date.now()});registerAi();persistLocal();setSync("ok");home();
  }catch(e){msg.textContent="Could not connect. Check the internet connection and try again."}
 }
 function restoreForm(){return `<div class="stack tight"><label for="restoreCode"><b>Recovery code</b><span class="mg">Kaody famerenana</span></label>
@@ -526,14 +561,25 @@ function backupPanel(){return `<section class="panel stack tight"><div class="ro
  <div class="row"><button class="btn ghost" data-act="copycode">Copy code</button><button class="btn ghost" data-act="showrestore">Use another code</button></div><div id="restoreBox"></div></section>`}
 
 /* ================= LEVEL-UP ================= */
-function levelUpState(){const lv=S.level||1;if(!LEVEL_TESTS[lv])return {none:true,lv};const ls=LESSONS.filter(l=>l.level===lv),done=ls.filter(l=>S.lessons[l.id]);
+function levelUpState(){const lv=S.level||1;if(lv>=5)return {none:true,lv};
+ const atLv=ALL().filter(l=>l.level===lv),doneAll=atLv.filter(l=>S.lessons[l.id]);
+ if(!LEVEL_TESTS[lv]){const need=4,avg=doneAll.length?doneAll.reduce((a,l)=>a+S.lessons[l.id].q,0)/doneAll.length:0;return {lv,total:need,done:Math.min(doneAll.length,need),avg:Math.round(avg),ready:doneAll.length>=need&&avg>=70,ai:true}}
+ const ls=LESSONS.filter(l=>l.level===lv),done=ls.filter(l=>S.lessons[l.id]);
  const avg=done.length?done.reduce((a,l)=>a+S.lessons[l.id].q,0)/done.length:0;return {lv,total:ls.length,done:done.length,avg:Math.round(avg),ready:done.length===ls.length&&avg>=70}}
 function levelUpCard(){const st=levelUpState();if(st.none)return "";
  if(st.ready)return `<section class="panel stack tight" style="border-color:var(--gold)"><p class="kicker">Level-up test unlocked</p><h3>Ready for Level ${st.lv+1}?</h3>
   <p class="muted">10 questions. Score 8 or more to move up.<span class="mg">Fanontaniana 10. Mila 8 farafahakeliny vao miakatra ambaratonga.</span></p><button class="btn primary" data-act="levelup">Take the level-up test</button></section>`;
  return `<section class="panel stack tight"><div class="row" style="justify-content:space-between"><h3>Level-up test</h3><span class="muted" style="font-size:.85rem;font-variant-numeric:tabular-nums">${st.done}/${st.total} lessons</span></div><div class="meter"><i style="width:${pct(st.done/st.total)}%"></i></div>
-  <p class="muted" style="font-size:.9rem">Finish all Level ${st.lv} lessons with an average of 70% or more to unlock the test for Level ${st.lv+1}.${st.done?` Your average now: ${st.avg}%.`:""}<span class="mg">Vitao ny lesona rehetra amin'ny ambaratonga ${st.lv} (70% farafahakeliny).</span></p></section>`}
-function startLevelUp(){const lv=S.level||1;T={items:shuffle(LEVEL_TESTS[lv]),kind:"levelup",level:lv,i:0,ans:[],spk:{}};renderTest()}
+  <p class="muted" style="font-size:.9rem">${st.ai?`Finish ${st.total} Level ${st.lv} lessons`:`Finish all Level ${st.lv} lessons`} with an average of 70% or more to unlock the test for Level ${st.lv+1}.${st.done?` Your average now: ${st.avg}%.`:""}<span class="mg">Vitao ny lesona rehetra amin'ny ambaratonga ${st.lv} (70% farafahakeliny).</span></p></section>`}
+function startLevelUp(){const lv=S.level||1;
+ if(LEVEL_TESTS[lv]){T={items:shuffle(LEVEL_TESTS[lv]),kind:"levelup",level:lv,i:0,ans:[],spk:{}};renderTest();return}
+ showLoading("Preparing your level-up test…","Ny mpampianatra AI dia manomana ny fitsapana.",4500);
+ aiCall("levelup",{level:lv,hardWords:Object.keys(S.hard).map(k=>W[k]&&W[k][0]).filter(Boolean)},loadingProgress).then(r=>{
+  const items=(r.items||[]).filter(it=>["vocab","grammar","read","listen"].includes(it.s)&&Array.isArray(it.o)&&it.o.length>=2&&Number.isInteger(it.a)&&it.a>=0&&it.a<it.o.length&&it.q&&(it.s!=="read"||it.p)&&(it.s!=="listen"||it.audio)).slice(0,10);
+  if(items.length<8)throw new AIError("bad-output");
+  T={items,kind:"levelup",level:lv,i:0,ans:[],spk:{}};renderTest();
+ }).catch(e=>aiFailed(e));
+}
 function finishLevelUp(){
  const n=T.items.length,c=T.ans.filter(Boolean).length,pass=c>=Math.ceil(n*0.75),from=T.level;
  S.levelUps=S.levelUps||[];S.levelUps.push({date:today(),from,score:c,of:n,pass});if(pass&&S.level===from)S.level=from+1;markDay();save();
@@ -564,16 +610,33 @@ function marked(t){return esc(t).replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g,(m,
 
 /* ================= VOICE ================= */
 const TTS="speechSynthesis" in window;let VOICE=null;
-function pickVoice(){const vs=speechSynthesis.getVoices();VOICE=vs.find(v=>/^en[-_]GB/i.test(v.lang)&&/google|female|natural/i.test(v.name))||vs.find(v=>/^en[-_]GB/i.test(v.lang))||vs.find(v=>/^en[-_]US/i.test(v.lang))||vs.find(v=>/^en/i.test(v.lang))||null}
+const SOFT=/female|woman|samantha|karen|moira|tessa|serena|kate|susan|zira|hazel|libby|sonia|aria|jenny|natasha|fiona|victoria|allison|ava|emma|olivia|google us english|google uk english female/i;
+const ACCENT={GB:"British",US:"American",AU:"Australian",IN:"Indian",ZA:"South African",NG:"Nigerian",KE:"Kenyan",IE:"Irish",CA:"Canadian",NZ:"New Zealand",PH:"Philippine",SG:"Singapore",TZ:"Tanzanian",GH:"Ghanaian"};
+function enVoices(){if(!TTS)return [];return speechSynthesis.getVoices().filter(v=>/^en([-_]|$)/i.test(v.lang))}
+function pickVoice(){const vs=enVoices();VOICE=(S.voiceURI&&vs.find(v=>v.voiceURI===S.voiceURI))||vs.find(v=>/^en[-_]GB/i.test(v.lang)&&SOFT.test(v.name))||vs.find(v=>SOFT.test(v.name))||vs.find(v=>/^en[-_]GB/i.test(v.lang))||vs.find(v=>/^en[-_]US/i.test(v.lang))||vs[0]||null}
+function voiceLabel(v,i){const reg=(v.lang.split(/[-_]/)[1]||"").toUpperCase();const name=v.name.replace(/^(Google|Microsoft|Apple)\s+/,"").replace(/\s*\(.*\)\s*$/,"");return {name:name||("Voice "+(i+1)),accent:(ACCENT[reg]||reg||"English")+" English"+(v.localService?" · works offline":"")}}
+const SAMPLE="Hello! I am your English teacher. Let's practise together.";
+function openVoiceSheet(){
+ const vs=enVoices();pickVoice();
+ const rows=vs.map((v,i)=>{const lb=voiceLabel(v,i),on=VOICE&&v.voiceURI===VOICE.voiceURI;return `<div class="vrow${on?" on":""}"><button class="vpick" data-act="pickvoice" data-i="${i}" aria-pressed="${on}"><b>${esc(lb.name)}</b><small>${esc(lb.accent)}</small></button><button class="say" data-act="tryvoice" data-i="${i}" aria-label="Play this voice">${ICON.spk}</button></div>`}).join("");
+ host.innerHTML=`<div class="scrim" data-act="closesheet"></div><div class="sheet" role="dialog" aria-label="Voice settings">
+  <h2>Choose a voice</h2><span class="mg" style="margin-top:-6px">Fidio ny feo tianao.</span>
+  ${vs.length?`<div class="voices">${rows}</div>`:`<p class="muted">This phone has no English voices yet. See the steps below to add one.</p>`}
+  <div class="slider"><label for="pitch"><b>Voice height</b></label><span class="muted" id="pitchV">${S.pitch.toFixed(2)}</span><input id="pitch" type="range" min="0.7" max="1.6" step="0.05" value="${S.pitch}"><span class="ends"><span>Deeper</span><span>Lighter</span></span></div>
+  <div class="slider"><label for="rate"><b>Speed</b></label><span class="muted" id="rateV">${S.rate.toFixed(2)}</span><input id="rate" type="range" min="0.6" max="1.2" step="0.05" value="${S.rate}"><span class="ends"><span>Slower</span><span>Faster</span></span></div>
+  <div class="row"><button class="btn" data-act="trysample">${ICON.spk} Test the voice</button><button class="btn ghost" data-act="voicereset">Reset</button></div>
+  <details><summary class="muted" style="font-size:.9rem;cursor:pointer">Want more voices on Android?</summary><p class="muted" style="font-size:.88rem;margin-top:6px">Open <b>Settings → System → Languages → Text-to-speech output</b>. Tap the gear next to <b>Speech Services by Google</b> → <b>Install voice data</b> → <b>English</b>, and download the voices you like (some have several, e.g. I, II, III). Then come back here and pick one. Raising “Voice height” also makes any voice sound lighter.</p></details>
+  <button class="btn primary" data-act="closesheet">Done · Vita</button></div>`;
+}
 if(TTS){pickVoice();speechSynthesis.onvoiceschanged=pickVoice}
-function utter(t,slow){const u=new SpeechSynthesisUtterance(clean(t));u.lang=VOICE?VOICE.lang:"en-GB";if(VOICE)u.voice=VOICE;u.rate=slow?0.68:0.92;return u}
+function utter(t,slow){const u=new SpeechSynthesisUtterance(clean(t));u.lang=VOICE?VOICE.lang:"en-GB";if(VOICE)u.voice=VOICE;const base=S.rate||0.92;u.rate=slow?base*0.74:base;u.pitch=S.pitch||1.15;return u}
 function say(t,slow){if(!TTS)return;speechSynthesis.cancel();speechSynthesis.speak(utter(t,slow===undefined?S.slow:slow))}
 function playLines(lines){if(!TTS)return;speechSynthesis.cancel();lines.forEach((t,i)=>{const u=utter(t,S.slow);u.onstart=()=>hl(i);u.onend=()=>{if(i===lines.length-1)hl(-1)};speechSynthesis.speak(u)})}
 function hl(i){document.querySelectorAll(".line").forEach((el,j)=>el.classList.toggle("hl",j===i))}
 
 /* ================= SPEAKING CHECK ================= */
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-const SPK={},SPKRES={};let spkN=0,rec=null;
+const SPK={},SPKRES={},SPKLAST={};let spkN=0,rec=null;
 const NUM={zero:"0",one:"1",two:"2",three:"3",four:"4",five:"5",six:"6",seven:"7",eight:"8",nine:"9",ten:"10"};
 const toks=s=>s.toLowerCase().replace(/’/g,"'").replace(/-/g," ").replace(/[^a-z0-9' ]/g," ").split(/\s+/).filter(Boolean).map(w=>NUM[w]||w);
 function compare(target,heard){
@@ -587,10 +650,10 @@ function compare(target,heard){
  const ok=words.map((w,wi)=>{const idx=owner.map((o,k)=>o===wi?k:-1).filter(k=>k>=0);return idx.every(k=>okFlat.has(k))});
  return {ok,score:n?okFlat.size/n:0};
 }
-function speakBlock(text,tip,tipMg){
+function speakBlock(text,tip,tipMg,ai){
  const id="s"+(++spkN);SPK[id]=text;
  const words=text.split(/\s+/).map((w,i)=>`<span data-wi="${i}">${esc(w)}</span>`).join(" ");
- return `<div class="spk" id="${id}"><p class="spk-text">${words}</p>${tip?`<p class="tip">${esc(tip)}${tipMg?`<span class="mg">${esc(tipMg)}</span>`:""}</p>`:""}
+ return `<div class="spk" id="${id}"${ai?' data-ai="1"':""}><p class="spk-text">${words}</p>${tip?`<p class="tip">${esc(tip)}${tipMg?`<span class="mg">${esc(tipMg)}</span>`:""}</p>`:""}
  <div class="row"><button class="btn ghost" data-act="hear" data-sid="${id}">${ICON.spk} Listen</button><button class="btn ghost" data-act="hearslow" data-sid="${id}">Slow</button><button class="btn mic" data-act="mic" data-sid="${id}">${ICON.mic} Record</button></div>
  <div class="spk-res" aria-live="polite"></div></div>`;
 }
@@ -616,7 +679,9 @@ function showSpeak(id,c){
  box.querySelectorAll(".spk-text span").forEach((s,i)=>{s.className=c.ok[i]?"ok":"bad"});
  const p=pct(c.score);const prev=SPKRES[id];if(typeof prev!=="number"||c.score>prev)SPKRES[id]=c.score;
  const msg=p>=85?["Excellent!","Tena tsara!"]:p>=60?["Good. Practise the red words again.","Tsara. Avereno ny teny mena."]:["Keep practising. Listen again, then say it slowly.","Henoy indray, dia tenony moramora."];
- box.querySelector(".spk-res").innerHTML=`<div class="meter"><i style="width:${p}%"></i></div><p><b>${p}%</b> · ${msg[0]}<span class="mg">${msg[1]}</span></p><p class="muted">I heard: “${esc(c.heard)}”</p>`;
+ const missed=SPK[id].split(/\s+/).filter((w,i)=>!c.ok[i]).map(w=>w.replace(/[^A-Za-z'’-]/g,"")).filter(Boolean);SPKLAST[id]={heard:c.heard,missed};
+ if(missed.length){S.sounds=[...new Set([...missed.map(w=>w.toLowerCase()),...(S.sounds||[])])].slice(0,20);persistLocal()}
+ box.querySelector(".spk-res").innerHTML=`<div class="meter"><i style="width:${p}%"></i></div><p><b>${p}%</b> · ${msg[0]}<span class="mg">${msg[1]}</span></p><p class="muted">I heard: “${esc(c.heard)}”</p>${box.dataset.ai&&missed.length?`<button class="iconbtn" data-act="spktips" data-sid="${id}" style="align-self:flex-start">Ask the teacher how to say the red words</button><div class="tipsbox"></div>`:""}`;
 }
 
 /* ================= WORD SHEET ================= */
@@ -635,11 +700,11 @@ function openWord(k){
 function closeSheet(){host.innerHTML=""}
 
 /* ================= HOME ================= */
-function nextLesson(){const start=Math.min(S.level||1,2);return LESSONS.find(l=>l.level>=start&&!S.lessons[l.id])||LESSONS.find(l=>!S.lessons[l.id])||null}
-function wordsLearned(){const s=new Set();LESSONS.forEach(l=>{if(S.lessons[l.id])l.words.forEach(k=>s.add(k))});return s.size}
+function nextLesson(){const lv=S.level||1,start=Math.min(lv,2);return ALL().find(l=>l.level>=start&&l.level<=lv&&!S.lessons[l.id])||null}
+function wordsLearned(){const s=new Set();ALL().forEach(l=>{if(S.lessons[l.id])l.words.forEach(k=>s.add(k))});return s.size}
 function home(){
  window.scrollTo(0,0);L=null;T=null;
- const brand=`<header class="brand"><b>Miteny <em>English</em></b><span class="muted" style="font-size:.85rem">Malagasy · Français</span></header>`;
+ const brand=`<header class="brand"><b>Miteny <em>English</em></b><button class="iconbtn" data-act="voice">${ICON.spk} Voice</button></header>`;
  if(!S.placement){
   view.innerHTML=brand+`<div class="stack">
    <section class="hero"><p class="kicker" style="color:inherit;opacity:.8">Step 1 of your course</p>
@@ -652,26 +717,27 @@ function home(){
     <p class="muted" style="font-size:.9rem">Tip: use Chrome on an Android phone and allow the microphone for speaking practice.</p></section></div>`;
   return;
  }
- const lv=LEVELS[(S.level||1)-1],nx=nextLesson(),done=LESSONS.filter(l=>S.lessons[l.id]).length,hardN=Object.keys(S.hard).length;
+ const lv=LEVELS[(S.level||1)-1],nx=nextLesson(),done=ALL().filter(l=>S.lessons[l.id]).length,hardN=Object.keys(S.hard).length;
  const weak=S.placement.weak||[];
  let outline="";
  LEVELS.forEach(L_=>{
-  const ls=LESSONS.filter(l=>l.level===L_.n);
+  const ls=ALL().filter(l=>l.level===L_.n);
   outline+=`<div class="lvl"><div class="lvl-h"><h3>${L_.n}. ${L_.name}<span class="mg">${L_.mg}</span></h3>${L_.n===S.level?'<span class="tag">Your level</span>':""}</div>`;
   if(ls.length)ls.forEach((l,i)=>{const r=S.lessons[l.id];const isNext=nx&&nx.id===l.id;
-   outline+=`<button class="les${r?" done":""}${isNext?" next":""}" data-act="lesson" data-id="${l.id}"><span class="n">${r?"✓":i+1}</span><span class="t"><b>${esc(l.title)}</b><small>${esc(l.kind)} · ${esc(l.topic)}${l.level<Math.min(S.level,2)&&!r?" · optional review":""}</small></span>${r?`<span class="s">${r.q}%</span>`:isNext?'<span class="s">Next</span>':""}</button>`});
-  else outline+=`<p class="soon">New lessons for this level arrive with the AI teacher.<span class="mg">Ho avy miaraka amin'ny mpampianatra AI ny lesona.</span></p>`;
+   outline+=`<button class="les${r?" done":""}${isNext?" next":""}" data-act="lesson" data-id="${l.id}"><span class="n">${r?"✓":i+1}</span><span class="t"><b>${esc(l.title)}</b>${l.ai?'<span class="ai-tag">AI</span>':""}<small>${esc(l.kind)} · ${esc(l.topic)}${l.level<Math.min(S.level,2)&&!r?" · optional review":""}</small></span>${r?`<span class="s">${r.q}%</span>`:isNext?'<span class="s">Next</span>':""}</button>`});
+  if(L_.n===S.level)outline+=`<button class="les" data-act="ailesson"><span class="n">+</span><span class="t"><b>Create a new lesson</b><small>The AI teacher writes one for your level</small></span></button>`;
+  else if(!ls.length)outline+=`<p class="soon">${L_.n>S.level?`Opens when you reach Level ${L_.n}.<span class="mg">Misokatra rehefa tonga amin'ny ambaratonga ${L_.n}.</span>`:"No lessons here."}</p>`;
   outline+="</div>";
  });
  view.innerHTML=brand+`<div class="stack">
   ${codeCard()}<div class="stats">
    <div class="stat"><b>${lv.n}</b><small>${lv.name}</small></div>
    <div class="stat"><b>${streak()}</b><small>Day streak</small></div>
-   <div class="stat"><b>${done}/${LESSONS.length}</b><small>Lessons done</small></div>
+   <div class="stat"><b>${done}</b><small>Lessons done</small></div>
    <div class="stat"><b>${wordsLearned()}</b><small>Words learned</small></div></div>
   ${weak.length?`<div class="stack tight"><p class="kicker">Your focus</p><div class="chips">${weak.map(s=>`<span class="chip">${SEC[s].en}</span>`).join("")}</div></div>`:""}
   ${nx?`<section class="hero"><p class="kicker" style="color:inherit;opacity:.8">Next lesson · ${esc(nx.kind)}</p><h2>${esc(nx.title)}</h2><p>${esc(nx.topic)} · Level ${nx.level}</p><button class="btn" data-act="lesson" data-id="${nx.id}">Start lesson · Atombohy</button></section>`
-   :`<section class="hero"><h2>All starter lessons done!</h2><p>Practise your difficult words, or repeat a lesson to improve your score.<span class="mg">Vita ny lesona rehetra.</span></p></section>`}
+   :`<section class="hero"><p class="kicker" style="color:inherit;opacity:.8">AI teacher · Mpampianatra AI</p><h2>Ready for a new lesson?</h2><p>The AI teacher writes a fresh Level ${S.level} lesson on a new topic, with your difficult words and weak points in mind.<span class="mg">Hanoratra lesona vaovao ho anao ny mpampianatra AI.</span></p><button class="btn" data-act="ailesson">Create a new lesson</button></section>`}
   ${levelUpCard()}
   ${hardN?`<section class="panel row" style="justify-content:space-between"><div><h3>Difficult words</h3><p class="muted">${hardN} word${hardN>1?"s":""} to practise</p></div><button class="btn" data-act="review">Practise</button></section>`:""}
   <section class="stack tight"><p class="kicker">Your course</p>${outline}</section>
@@ -732,8 +798,8 @@ function showResult(){
 }
 
 /* ================= LESSON ================= */
-let L=null;const STEPS=["Read","Words","Questions","Speak","Finish"];
-function openLesson(id){const lesson=LESSONS.find(l=>l.id===id);L={lesson,step:0,qi:0,right:0,answered:false,spkIds:[],missed:[]};renderLesson()}
+let L=null;const STEPS=["Read","Words","Questions","Speak","Write","Finish"];
+function openLesson(id){const lesson=ALL().find(l=>l.id===id);if(!lesson)return home();L={lesson,step:0,qi:0,right:0,answered:false,spkIds:[],missed:[]};renderLesson()}
 function lessonTop(){return `<div class="top"><button class="x" data-act="home" aria-label="Leave lesson">${ICON.x}</button><div class="steps">${STEPS.map((s,i)=>`<span class="${i<L.step?"done":i===L.step?"now":""}">${s}</span>`).join("")}</div></div>`}
 function renderLesson(){
  window.scrollTo(0,0);if(TTS)speechSynthesis.cancel();
@@ -741,7 +807,7 @@ function renderLesson(){
  if(L.step===0){
   h+=`<div class="stack"><div><p class="kicker">Level ${l.level} · ${esc(l.topic)} · ${esc(l.kind)}</p><h1 style="margin-top:6px">${esc(l.title)}</h1></div>
   <p class="inst">Read and listen. Tap an underlined word to see its meaning.<span class="mg">Vakio sy henoy. Tsindrio ny teny misy tsipika hahitana ny dikany.</span></p>
-  <div class="row"><button class="btn" data-act="playall">${ICON.spk} Listen to all</button><button class="btn toggle" data-act="slow" aria-pressed="${S.slow}">Slow voice</button></div>
+  <div class="row"><button class="btn" data-act="playall">${ICON.spk} Listen to all</button><button class="btn toggle" data-act="slow" aria-pressed="${S.slow}">Slow voice</button><button class="iconbtn" data-act="voice">Change voice</button></div>
   <div class="passage">${l.lines.map(([who,t],i)=>`<div class="line"><button class="say" data-act="sayline" data-i="${i}" aria-label="Listen to this line">${ICON.spk}</button><div class="txt">${who?`<span class="who">${esc(who)}</span>`:""}${marked(t)}</div></div>`).join("")}</div>
   <button class="btn primary" data-act="lnext">Next: words · Teny</button></div>`;
  }else if(L.step===1){
@@ -754,10 +820,16 @@ function renderLesson(){
  }else if(L.step===2){
   h+=renderQuestion();
  }else if(L.step===3){
-  L.spkIds=[];const blocks=l.speak.map(s=>{const b=speakBlock(s.t,s.tip,s.mg);L.spkIds.push("s"+spkN);return b}).join("");
+  L.spkIds=[];const blocks=l.speak.map(s=>{const b=speakBlock(s.t,s.tip,s.mg,true);L.spkIds.push("s"+spkN);return b}).join("");
   h+=`<div class="stack"><div><p class="kicker">Pronunciation</p><h2>Say it like a native speaker</h2></div>
   <p class="inst">Listen first. Then tap Record and say the sentence. Green words were clear; red words need practice.<span class="mg">Henoy aloha. Avy eo tsindrio Record ary tenony. Maitso = mazava; mena = mbola mila fanazarana.</span></p>
-  ${blocks}<button class="btn primary" data-act="lnext">Finish lesson · Vita</button></div>`;
+  ${blocks}<button class="btn primary" data-act="lnext">${l.writing?"Next: writing · Fanoratana":"Finish lesson · Vita"}</button></div>`;
+ }else if(L.step===4&&l.writing&&!L.skipWrite){
+  h+=`<div class="stack"><div><p class="kicker">Writing · Fanoratana</p><h2>${esc(l.writing.task)}</h2><span class="mg">${esc(l.writing.mg)}</span></div>
+  <label for="writeBox" class="muted" style="font-size:.9rem">Write in English. The AI teacher will correct it and explain.</label>
+  <textarea id="writeBox" class="textarea" placeholder="Write here…">${esc(L.writeText||"")}</textarea>
+  <div id="writeRes" class="stack tight" aria-live="polite">${L.writeHTML||""}</div>
+  ${L.writeDone?`<button class="btn primary" data-act="lnext">Finish lesson · Vita</button>`:`<button class="btn primary" data-act="checkwrite">Check my writing · Hamarino</button><button class="link" data-act="skipwrite" style="align-self:center">Skip writing for now</button>`}</div>`;
  }else{
   h+=renderFinish();
  }
@@ -793,16 +865,103 @@ function matchPick(side,k){
 }
 function qNext(){L.answered=false;L.pick=null;L.m=null;L.qi++;if(L.qi>=L.lesson.qs.length){L.step=3}renderLesson()}
 function renderFinish(){
- const l=L.lesson,q=L.right/l.qs.length,sv=L.spkIds.map(id=>SPKRES[id]).filter(v=>typeof v==="number"),s=sv.length?sv.reduce((a,b)=>a+b,0)/sv.length:null;
- if(!L.saved){const prev=S.lessons[l.id];S.lessons[l.id]={q:Math.max(pct(q),prev?prev.q:0),s:s===null?(prev?prev.s:null):pct(s),at:today(),tries:(prev?prev.tries:0)+1};markDay();L.saved=true;save()}
+ L.step=5;const l=L.lesson,q=L.right/l.qs.length,sv=L.spkIds.map(id=>SPKRES[id]).filter(v=>typeof v==="number"),s=sv.length?sv.reduce((a,b)=>a+b,0)/sv.length:null;
+ if(!L.saved){const prev=S.lessons[l.id];S.lessons[l.id]={q:Math.max(pct(q),prev?prev.q:0),s:s===null?(prev?prev.s:null):pct(s),at:today(),tries:(prev?prev.tries:0)+1,w:typeof L.writeScore==="number"?L.writeScore:(prev?prev.w:null)};markDay();L.saved=true;save()}
  const nx=nextLesson(),missed=[...new Set(L.missed)];
  return `<div class="stack" style="text-align:center;align-items:center;padding-top:10px">
   <p class="kicker">Lesson complete · Vita ny lesona</p><span class="score-ring">${pct(q)}%</span><h2>${q>=0.8?"Great work!":q>=0.5?"Good effort!":"Keep going!"}</h2>
-  <p class="muted">${L.right} of ${l.qs.length} questions correct${s!==null?` · pronunciation ${pct(s)}%`:""}</p></div>
+  <p class="muted">${L.right} of ${l.qs.length} questions correct${s!==null?` · pronunciation ${pct(s)}%`:""}${typeof L.writeScore==="number"?` · writing ${L.writeScore}%`:""}</p></div>
   <div class="stack" style="margin-top:18px">
   ${missed.length?`<section class="panel stack tight"><h3>Saved for practice</h3><div class="chips">${missed.map(k=>`<span class="chip">${esc(W[k][0])}</span>`).join("")}</div></section>`:""}
   ${nx?`<button class="btn primary" data-act="lesson" data-id="${nx.id}">Next lesson: ${esc(nx.title)}</button>`:""}
   <button class="btn" data-act="home" style="width:100%;min-height:50px">Back to my course</button></div>`;
+}
+
+/* ================= AI TEACHER ================= */
+class AIError extends Error{constructor(code){super(code);this.code=code}}
+const AI={left:null};
+const AI_MSG={
+ unavailable:["The AI teacher works only in the app at miteny-english.netlify.app.","Ao amin'ny app ihany no miasa ny mpampianatra AI."],
+ "no-key":["The AI teacher is not switched on yet. The app owner needs to add the AI key in Netlify.","Mbola tsy nalefa ny mpampianatra AI."],
+ "bad-key":["The AI key in Netlify is not working. The app owner needs to check it.","Misy olana ny lakilen'ny AI."],
+ "daily-limit":["You have used all of today's AI help. Come back tomorrow, or repeat a lesson.","Lany ny fanampiana AI anio. Miverena rahampitso."],
+ "app-limit":["The AI teacher has reached today's limit for the app. Try again tomorrow.","Tratra ny fetra anio. Andramo rahampitso."],
+ "ai-busy":["The AI teacher is busy. Wait a minute and try again.","Sahirana ny mpampianatra AI. Andramo indray afaka kelikely."],
+ offline:["No internet connection. Connect to the internet and try again.","Tsy misy internet."],
+ "too-long":["The answer was too long. Please try again.","Andramo indray."],
+ default:["The AI teacher had a problem. Please try again.","Nisy olana. Andramo indray."]};
+const aiMsg=e=>AI_MSG[e&&e.code]||AI_MSG.default;
+async function aiCall(task,params,onProgress){
+ if(!navigator.onLine)throw new AIError("offline");
+ let r;try{r=await fetch("/api/ai",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({code:S.code,task,params})})}catch(e){throw new AIError("offline")}
+ const ct=r.headers.get("content-type")||"";
+ if(!r.ok||!ct.includes("event-stream")){let j=null;try{j=await r.json()}catch(e){}throw new AIError(j&&j.error?j.error:"unavailable")}
+ const left=r.headers.get("x-ai-left");if(left)AI.left=+left;
+ const rd=r.body.getReader(),dec=new TextDecoder();let buf="",out="",stop=null;
+ for(;;){const {done,value}=await rd.read();if(done)break;buf+=dec.decode(value,{stream:true});let i;
+  while((i=buf.indexOf("\n"))>=0){const line=buf.slice(0,i).trim();buf=buf.slice(i+1);if(!line.startsWith("data:"))continue;let ev;try{ev=JSON.parse(line.slice(5))}catch(e){continue}
+   if(ev.type==="content_block_delta"&&ev.delta&&ev.delta.type==="input_json_delta"){out+=ev.delta.partial_json;if(onProgress)onProgress(out.length)}
+   else if(ev.type==="message_delta"&&ev.delta&&ev.delta.stop_reason)stop=ev.delta.stop_reason;
+   else if(ev.type==="error")throw new AIError(ev.error&&ev.error.type==="overloaded_error"?"ai-busy":"default")}}
+ if(stop==="max_tokens")throw new AIError("too-long");
+ try{return JSON.parse(out)}catch(e){throw new AIError("default")}
+}
+let LOAD={exp:1};
+function showLoading(title,mg,expected){LOAD={exp:expected};window.scrollTo(0,0);view.innerHTML=`<div class="loading"><div class="dots"><i></i><i></i><i></i></div><h2>${esc(title)}</h2><span class="mg">${esc(mg)}</span><div class="bar"><i id="loadBar" style="width:3%"></i></div><p class="muted" style="font-size:.88rem">This takes about 20–40 seconds.</p></div>`}
+function loadingProgress(n){const b=document.getElementById("loadBar");if(b)b.style.width=Math.min(96,3+93*n/LOAD.exp)+"%"}
+function aiFailed(e){const m=aiMsg(e);view.innerHTML=`<div class="loading"><h2>Not available right now</h2><p>${esc(m[0])}<span class="mg">${esc(m[1])}</span></p><button class="btn primary" data-act="home" style="max-width:320px">Back to my course</button></div>`}
+function pickTopic(){const used={};(S.aiLessons||[]).forEach(l=>{used[l.topic]=(used[l.topic]||0)+1});const min=Math.min(...TOPICS.map(t=>used[t]||0));return shuffle(TOPICS.filter(t=>(used[t]||0)===min))[0]}
+function normalizeAiLesson(raw,level,topic,kind){
+ const id="ai"+Date.now().toString(36),slug=x=>String(x||"").toLowerCase().replace(/[^a-z0-9]/g,"").slice(0,24);
+ const map={},gloss={},words=[];
+ (raw.words||[]).slice(0,14).forEach(w=>{const k=slug(w.key||w.en);if(!k||map[k]||!w.en)return;const nk=id+"_"+k;map[k]=nk;gloss[nk]=[w.en,w.say,w.mg,w.fr,w.def,w.ex].map(x=>String(x||""));words.push(nk)});
+ const fix=t=>String(t||"").replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g,(m,shown,k)=>{const nk=map[slug(k||shown)];return nk?`[[${shown}|${nk}]]`:shown});
+ const lines=(raw.lines||[]).map(l=>[l.who?String(l.who).slice(0,30):null,fix(l.text)]).filter(l=>l[1].trim());
+ const qs=[];(raw.qs||[]).forEach(q=>{if(!q.q)return;
+  if(q.t==="tf"&&typeof q.truth==="boolean")qs.push({t:"tf",q:String(q.q),a:q.truth,why:String(q.why||""),mg:String(q.mg||"")});
+  else if(Array.isArray(q.o)&&q.o.length>=2&&Number.isInteger(q.a)&&q.a>=0&&q.a<q.o.length)qs.push({t:"mc",q:String(q.q),o:q.o.map(String),a:q.a,why:String(q.why||""),mg:String(q.mg||"")})});
+ let mk=[...new Set((raw.match||[]).map(k=>map[slug(k)]).filter(Boolean))];if(mk.length<3)mk=words.slice(0,4);if(mk.length>=3)qs.push({t:"match",keys:mk.slice(0,4)});
+ const speak=(raw.speak||[]).slice(0,4).map(x=>({t:String(x.t||"").trim(),tip:String(x.tip||""),mg:String(x.mg||"")})).filter(x=>x.t);
+ if(!lines.length||qs.length<3||!words.length)throw new AIError("default");
+ return {id,level,ai:true,created:today(),topic:String(raw.topic||topic).slice(0,60),kind:String(raw.kind||kind).slice(0,30),title:String(raw.title||"New lesson").slice(0,80),lines,words,gloss,qs,speak,
+  writing:raw.writing&&raw.writing.task?{task:String(raw.writing.task),mg:String(raw.writing.mg||"")}:null};
+}
+async function createAiLesson(){
+ const lv=S.level||1,topic=pickTopic(),kind=KINDS[Math.floor(Math.random()*KINDS.length)];
+ showLoading(`Writing a new lesson: ${topic}`,"Manoratra lesona vaovao ho anao ny mpampianatra AI.",9000);
+ try{
+  const raw=await aiCall("lesson",{level:lv,topic,kind,focus:(S.placement&&S.placement.weak||[]).map(k=>SEC[k].en),
+   hardWords:Object.keys(S.hard).map(k=>W[k]&&W[k][0]).filter(Boolean),mistakes:(S.mistakes||[]).slice(0,15),sounds:(S.sounds||[]).slice(0,15),avoid:ALL().map(l=>l.title)},loadingProgress);
+  const lesson=normalizeAiLesson(raw,lv,topic,kind);
+  S.aiLessons=S.aiLessons||[];S.aiLessons.push(lesson);
+  // Keep the backup small: drop the oldest finished AI lessons beyond 30.
+  while(S.aiLessons.length>30){const i=S.aiLessons.findIndex(l=>S.lessons[l.id]);if(i<0)break;const old=S.aiLessons.splice(i,1)[0];Object.keys(old.gloss||{}).forEach(k=>{if(!S.hard[k])delete W[k]})}
+  Object.entries(lesson.gloss).forEach(([k,v])=>{W[k]=v});save();openLesson(lesson.id);
+ }catch(e){aiFailed(e)}
+}
+async function checkWriting(){
+ const ta=document.getElementById("writeBox"),text=ta.value.trim(),res=document.getElementById("writeRes");L.writeText=ta.value;
+ if(text.split(/\s+/).length<3){res.innerHTML='<p class="muted">Write a little more first (at least one full sentence).<span class="mg">Soraty fehezanteny iray feno farafahakeliny.</span></p>';return}
+ const btn=view.querySelector('[data-act="checkwrite"]');btn.disabled=true;btn.textContent="The teacher is reading…";
+ try{
+  const r=await aiCall("writing",{level:L.lesson.level,task:L.lesson.writing.task,lesson:L.lesson.title,answer:text});
+  const score=Math.max(0,Math.min(100,parseInt(r.score,10)||0));L.writeScore=score;L.writeDone=true;
+  const ms=(r.mistakes||[]).slice(0,6);
+  S.mistakes=[...ms.map(m=>`${m.wrong} → ${m.right}`),...(S.mistakes||[])].slice(0,20);S.writing=S.writing||{};S.writing[L.lesson.id]={text,score,at:today()};save();
+  L.writeHTML=`<div class="fb ${score>=60?"ok":"no"}"><b>${score}% · ${score>=80?"Very good!":score>=60?"Good work!":"Keep practising!"}</b><p>${esc(r.good||"")}</p></div>
+   <p class="kicker">Corrected text</p><p class="corr">${esc(r.corrected||text)}</p>
+   ${ms.length?`<p class="kicker">Mistakes to learn from</p>${ms.map(m=>`<div class="mist"><span><s>${esc(m.wrong)}</s> → <b>${esc(m.right)}</b></span><span>${esc(m.why)}</span><span class="mg">${esc(m.mg)}</span></div>`).join("")}`:""}
+   ${r.tip?`<p class="tip">${esc(r.tip)}<span class="mg">${esc(r.tip_mg||"")}</span></p>`:""}`;
+  renderLesson();
+ }catch(e){const m=aiMsg(e);res.innerHTML=`<p class="muted">${esc(m[0])}<span class="mg">${esc(m[1])}</span></p>`;btn.disabled=false;btn.textContent="Check my writing · Hamarino"}
+}
+async function speakingTips(id,btn){
+ const last=SPKLAST[id];if(!last)return;const out=btn.nextElementSibling;btn.disabled=true;btn.textContent="Asking the teacher…";
+ try{
+  const r=await aiCall("speaking",{sentence:SPK[id],heard:last.heard,missed:last.missed});
+  out.innerHTML=(r.tips||[]).slice(0,3).map(t=>`<div class="tip"><b>${esc(t.word)}</b>: ${esc(t.tip)}<span class="mg">${esc(t.mg)}</span></div>`).join("")+(r.cheer?`<p class="muted">${esc(r.cheer)}</p>`:"");
+  btn.remove();
+ }catch(e){const m=aiMsg(e);out.innerHTML=`<p class="muted">${esc(m[0])}</p>`;btn.disabled=false;btn.textContent="Ask the teacher how to say the red words"}
 }
 
 /* ================= REVIEW ================= */
@@ -839,7 +998,7 @@ document.addEventListener("click",e=>{
   case "slow":S.slow=!S.slow;save();b.setAttribute("aria-pressed",S.slow);break;
   case "sayword":say(W[b.dataset.k][0]);break;
   case "reveal":{const d=view.querySelector(`[data-mean="${b.dataset.k}"]`);d.hidden=!d.hidden;b.textContent=d.hidden?"Show meaning":"Hide meaning";if(!d.hidden){S.seen[b.dataset.k]=(S.seen[b.dataset.k]||0)+1;save()}break}
-  case "lnext":L.step++;renderLesson();break;
+  case "lnext":L.step++;if(L.step===4&&!L.lesson.writing)L.step=5;renderLesson();break;
   case "qans":qAnswer(+b.dataset.i);break;
   case "qnext":qNext();break;
   case "ml":matchPick("l",b.dataset.k);break;
@@ -860,8 +1019,21 @@ document.addEventListener("click",e=>{
   case "showrestore":{const box=document.getElementById("restoreBox");box.innerHTML=restoreForm();box.querySelector("input").focus();break}
   case "dorestore":doRestore();break;
   case "levelup":startLevelUp();break;
+  case "ailesson":createAiLesson();break;
+  case "checkwrite":checkWriting();break;
+  case "skipwrite":L.skipWrite=true;L.step=5;renderLesson();break;
+  case "spktips":speakingTips(b.dataset.sid,b);break;
+  case "voice":openVoiceSheet();break;
+  case "pickvoice":{const v=enVoices()[+b.dataset.i];if(v){S.voiceURI=v.voiceURI;save();pickVoice();say(SAMPLE,false);openVoiceSheet()}break}
+  case "tryvoice":{const v=enVoices()[+b.dataset.i];if(v&&TTS){speechSynthesis.cancel();const u=utter(SAMPLE,false);u.voice=v;u.lang=v.lang;speechSynthesis.speak(u)}break}
+  case "trysample":say(SAMPLE,false);break;
+  case "voicereset":S.voiceURI=null;S.pitch=1.15;S.rate=0.92;save();pickVoice();openVoiceSheet();break;
  }
 });
+document.addEventListener("input",e=>{
+ if(e.target.id==="pitch"||e.target.id==="rate"){const v=+e.target.value;S[e.target.id]=v;const lab=document.getElementById(e.target.id+"V");if(lab)lab.textContent=v.toFixed(2);save()}
+ if(e.target.id==="writeBox"&&L)L.writeText=e.target.value});
+document.addEventListener("change",e=>{if(e.target.id==="pitch"||e.target.id==="rate")say(SAMPLE,false)});
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet();if(e.key==="Enter"&&e.target.id==="restoreCode")doRestore()});
 function selectCode(){const el=document.querySelector(".codebox");if(!el)return;const r=document.createRange();r.selectNodeContents(el);const sel=getSelection();sel.removeAllRanges();sel.addRange(r)}
 home();
