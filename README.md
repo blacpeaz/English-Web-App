@@ -28,6 +28,8 @@ A mobile web app that teaches English to a Malagasy speaker, from beginner to ad
 | `AI_FAST_MODEL` | no | Default `claude-haiku-5-5` (speaking tips) |
 | `AI_DAILY_LIMIT` | no | AI uses per learner per day (default 25) |
 | `AI_GLOBAL_DAILY_LIMIT` | no | AI uses for the whole app per day (default 30) |
+| `GEMINI_API_KEY` | no | Free Google Gemini key (aistudio.google.com). When set, daily words, sentence checks and speaking tips use Gemini first and fall back to Claude if it fails |
+| `GEMINI_MODEL` | no | Default `gemini-3.8-flash` |
 | `AI_LIGHT_DAILY_LIMIT` | no | Small checks (one sentence, speaking tips) per learner per day (default 60) |
 | `AI_LIGHT_GLOBAL_DAILY_LIMIT` | no | Small checks for the whole app per day (default 100) |
 

@@ -6,6 +6,9 @@
 //   ANTHROPIC_API_KEY  required
 //   AI_MODEL           optional, default claude-sonnet-5-5 (lessons, writing, tests)
 //   AI_FAST_MODEL      optional, default claude-haiku-5-5  (quick speaking tips)
+//   GEMINI_API_KEY     optional; when set, small jobs (daily words, sentence checks, speaking tips) use
+//                      Google Gemini's free tier first and fall back to Claude if Gemini fails
+//   GEMINI_MODEL       optional, default gemini-3.8-flash
 //   APP_PIN            required; the AI only answers requests that carry this PIN (checked in /api/usage)
 
 const CODE_RE = /^[a-z0-9][a-z0-9-]{5,39}$/;
@@ -239,15 +242,85 @@ function build(task, p) {
 const LIMITS = {
   lesson: { fast: false, max: 8000 },
   writing: { fast: false, max: 2000 },
-  speaking: { fast: true, max: 700, light: true },
+  speaking: { fast: true, max: 700, light: true, gemini: true },
   levelup: { fast: false, max: 3500 },
-  words: { fast: false, max: 4500 },
-  sentence: { fast: false, max: 700, light: true },
+  words: { fast: false, max: 4500, light: true, gemini: true },
+  sentence: { fast: false, max: 700, light: true, gemini: true },
 };
+
+// ---------- Google Gemini (free tier) for small jobs ----------
+// Gemini's schema format: upper-case types and no "additionalProperties".
+function geminiSchema(x) {
+  if (Array.isArray(x)) return x.map(geminiSchema);
+  if (!x || typeof x !== "object") return x;
+  const out = {};
+  for (const [k, v] of Object.entries(x)) {
+    if (k === "additionalProperties") continue;
+    out[k] = k === "type" && typeof v === "string" ? v.toUpperCase() : typeof v === "object" ? geminiSchema(v) : v;
+  }
+  return out;
+}
+
+// Returns the parsed JSON, or null if Gemini is not set up, fails, is too slow, or answers badly.
+async function askGemini(task, system, user, max) {
+  const key = Netlify.env.get("GEMINI_API_KEY");
+  if (!key) return null;
+  const model = Netlify.env.get("GEMINI_MODEL") || "gemini-3.8-flash";
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 22000);
+  try {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+      method: "POST",
+      signal: ctrl.signal,
+      headers: { "x-goog-api-key": key, "content-type": "application/json" },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: system }] },
+        contents: [{ role: "user", parts: [{ text: user }] }],
+        generationConfig: { responseMimeType: "application/json", responseSchema: geminiSchema(SCHEMAS[task]), maxOutputTokens: Math.max(2048, max * 2) },
+      }),
+    });
+    if (!r.ok) {
+      console.log("Gemini error, using Claude instead:", r.status, (await r.text()).slice(0, 300));
+      return null;
+    }
+    const j = await r.json();
+    const cand = j?.candidates?.[0];
+    const text = (cand?.content?.parts || []).map((p) => p.text || "").join("");
+    if (cand?.finishReason && cand.finishReason !== "STOP") {
+      console.log("Gemini stopped early, using Claude instead:", cand.finishReason);
+      return null;
+    }
+    const out = JSON.parse(text);
+    const missing = (SCHEMAS[task].required || []).filter((f) => !(f in out));
+    if (missing.length) {
+      console.log("Gemini answer incomplete, using Claude instead:", missing.join(","));
+      return null;
+    }
+    return out;
+  } catch (e) {
+    console.log("Gemini failed, using Claude instead:", String(e).slice(0, 200));
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// Send a finished answer in the same streaming format the app reads from Claude.
+function asStream(obj, left) {
+  const ev = (o) => `event: ${o.type}\ndata: ${JSON.stringify(o)}\n\n`;
+  const body =
+    ev({ type: "message_start" }) +
+    ev({ type: "content_block_delta", index: 0, delta: { type: "text_delta", text: JSON.stringify(obj) } }) +
+    ev({ type: "message_delta", delta: { stop_reason: "end_turn" } }) +
+    ev({ type: "message_stop" });
+  return new Response(body, {
+    headers: { "content-type": "text/event-stream", "cache-control": "no-store", "x-ai-left": String(left ?? ""), "x-ai-provider": "gemini" },
+  });
+}
 
 export default async (req, context) => {
   const key = Netlify.env.get("ANTHROPIC_API_KEY");
-  if (!key) return json({ error: "no-key" }, 503);
+  if (!key && !Netlify.env.get("GEMINI_API_KEY")) return json({ error: "no-key" }, 503);
 
   let body;
   try {
@@ -278,6 +351,13 @@ export default async (req, context) => {
   }
 
   const { system, user } = build(body.task, body.params || {});
+
+  if (spec.gemini) {
+    const free = await askGemini(body.task, system, user, spec.max);
+    if (free) return asStream(free, left);
+  }
+  if (!key) return json({ error: "ai-busy" }, 502);
+
   const model = spec.fast ? Netlify.env.get("AI_FAST_MODEL") || "claude-haiku-5-5" : Netlify.env.get("AI_MODEL") || "claude-sonnet-5-5";
 
   const upstream = await fetch("https://api.anthropic.com/v1/messages", {
@@ -298,7 +378,7 @@ export default async (req, context) => {
     return json({ error: upstream.status === 401 ? "bad-key" : upstream.status === 529 || upstream.status === 429 ? "ai-busy" : "ai-error" }, 502);
   }
   return new Response(upstream.body, {
-    headers: { "content-type": "text/event-stream", "cache-control": "no-store", "x-ai-left": String(left ?? "") },
+    headers: { "content-type": "text/event-stream", "cache-control": "no-store", "x-ai-left": String(left ?? ""), "x-ai-provider": "claude" },
   });
 };
 
