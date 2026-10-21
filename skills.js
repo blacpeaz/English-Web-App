@@ -259,7 +259,7 @@ function grammarHome(showLv) {
   const rows = GRAMMAR[sel].map((g, i) => { const id = gid(sel, i), sc = gscore(id); return `<button class="les${gmastered(id) ? " done" : ""}" data-act="sk-gopen" data-id="${id}"><span class="n">${gmastered(id) ? "✓" : i + 1}</span><span class="t"><b>${esc(g[0])}</b><small>${esc(g[1])}</small></span>${sc !== null ? `<span class="s">${sc}%</span>` : ""}</button>`; }).join("");
   view.innerHTML = skTop("Grammar path · Fitsipi-pitenenana") + `<div class="stack">
    <div><h1>Level ${sel} grammar</h1><p class="muted">${sel === lv ? "Master 10 of these 12 topics (70% or more) to unlock your level-up test." : "Review topics from another level."}<span class="mg">Fehezo ny lohahevitra 10 amin'ireo 12 ireo.</span></p></div>
-   <div class="row">${[1, 2, 3, 4, 5].map((n) => `<button class="btn toggle" data-act="sk-glevel" data-lv="${n}" aria-pressed="${n === sel}">Level ${n}</button>`).join("")}</div>
+   <div class="stack tight"><p class="kicker">Level</p><div class="lvchips">${[1, 2, 3, 4, 5].map((n) => `<button class="btn toggle" data-act="sk-glevel" data-lv="${n}" aria-pressed="${n === sel}" aria-label="Level ${n}">${n}</button>`).join("")}</div></div>
    <div class="stack tight">${rows}</div></div>`;
 }
 async function openGrammar(id) {
@@ -547,7 +547,7 @@ function writeHome(showLv) {
   const lv = S.level || 1, sel = showLv || lv, hist = (S.sk || {}).write || [];
   view.innerHTML = skTop("Writing · Fanoratana") + `<div class="stack">
    <div><h1>Write like a professional</h1><p class="muted">Real tasks from work and life. The AI teacher marks task, organisation, grammar, vocabulary and tone, shows every correction and a model answer.<span class="mg">Asa fanoratana tena izy. Hamarinin'ny mpampianatra AI ary hasehony ny ohatra tsara.</span></p></div>
-   <div class="row">${[1, 2, 3, 4, 5].map((n) => `<button class="btn toggle" data-act="sk-wlevel" data-lv="${n}" aria-pressed="${n === sel}">Level ${n}</button>`).join("")}</div>
+   <div class="stack tight"><p class="kicker">Level</p><div class="lvchips">${[1, 2, 3, 4, 5].map((n) => `<button class="btn toggle" data-act="sk-wlevel" data-lv="${n}" aria-pressed="${n === sel}" aria-label="Level ${n}">${n}</button>`).join("")}</div></div>
    <div class="stack tight">${WRITE_TASKS[sel].map((t) => { const best = hist.filter((x) => x.id === t.id).reduce((a, x) => Math.max(a, x.s), -1); return `<button class="les${best >= 0 ? " done" : ""}" data-act="sk-wopen" data-id="${t.id}"><span class="n">${best >= 0 ? "✓" : "✎"}</span><span class="t"><b>${esc(t.title)}</b><small>${esc(t.genre)} · ${t.words} words</small></span>${best >= 0 ? `<span class="s">${best}%</span>` : ""}</button>`; }).join("")}</div></div>`;
 }
 function findTask(id) { for (const lv of [1, 2, 3, 4, 5]) { const t = WRITE_TASKS[lv].find((x) => x.id === id); if (t) return Object.assign({ lv }, t); } return null; }
