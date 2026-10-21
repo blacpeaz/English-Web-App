@@ -18,6 +18,8 @@ A mobile web app that teaches English to a Malagasy speaker, from beginner to ad
 - **Daily words**: each day the AI teacher picks 4–10 new words for the learner's level (Malagasy, French, sound guide, 3 examples). The learner studies them as flashcards, then writes their own sentence with each word and taps **Check**; if it is wrong, the app shows the correct way to write it with an explanation in English and Malagasy (up to 3 tries per word). Learned words come back for review after 1, 2, 4, 7, 15 and 30 days. Works without AI too, using words from the lessons.
 - **Own recovery code**: the learner can replace the random code with one they choose (6–40 letters, numbers or hyphens). The app refuses codes someone else already uses. One network can try at most 30 unknown codes a day, so codes cannot be guessed by trying many.
 
+- **Money & English**: a 20-lesson course that teaches personal finance through English lessons (reading, words, questions, speaking, writing). Ideas from The Richest Man in Babylon, The Psychology of Money, Rich Dad Poor Dad, Think and Grow Rich, The Millionaire Next Door and The Total Money Makeover, explained in new words with examples in ariary from daily life in Madagascar. Each lesson ends with a money takeaway and a small action for the week.
+
 ## Setup (Netlify environment variables)
 
 | Variable | Needed | What it does |

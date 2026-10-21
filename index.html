@@ -212,6 +212,10 @@ button:focus-visible,.w:focus-visible{outline:3px solid var(--gold);outline-offs
 .exs li span{min-width:0;padding-top:6px}
 .wrow{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center;text-align:left;border-top:1px solid var(--line);padding-top:8px}
 details.panel summary{list-style-position:inside}
+.moneybox{background:var(--gold-soft);border:1.5px solid var(--gold);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.moneybox .kicker{color:var(--ink)}
+.src{font-size:.85rem;color:var(--muted)}
+.money{border-color:var(--gold)}
 .confirm{background:var(--red-soft);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
 </style>
 </head>
@@ -442,6 +446,29 @@ const WRITING={
 LESSONS.forEach(l=>{l.writing=WRITING[l.id]});
 const TOPICS=["Work & business","Money & shopping","Travel & transport","Health & body","Food & cooking","Family & friends","Technology","News & society","Nature & environment","Culture & traditions","Sport & free time","Education","Customer service","Stories","Science in daily life","Jobs & careers","Cities & places"];
 const KINDS=["Conversation","Story","Article","Phone call","Interview","Email","Discussion"];
+/* Money & English: a 20-lesson course. Each lesson is written by the AI at the learner's level. */
+const BABYLON="The Richest Man in Babylon (George S. Clason, 1926)",PSYCH="The Psychology of Money (Morgan Housel, 2020)",RICHDAD="Rich Dad Poor Dad (Robert Kiyosaki, 1997)",TGR="Think and Grow Rich (Napoleon Hill, 1937)",MND="The Millionaire Next Door (Thomas Stanley & William Danko, 1996)",TMM="The Total Money Makeover (Dave Ramsey, 2003)";
+const MONEY=[
+ {title:"Pay yourself first",kind:"Story",source:BABYLON,idea:"Keep a part of everything you earn, at least one tenth, before you spend anything else. Saving is a habit, not something you do with what is left."},
+ {title:"Where does my money go?",kind:"Conversation",source:BABYLON,idea:"Write down your income and expenses and make a simple budget. Separate needs from wants, so spending never grows bigger than income."},
+ {title:"A cushion for bad days",kind:"Article",source:PSYCH+" and "+TMM,idea:"Build an emergency fund of a few months of expenses, so illness, a lost job or a broken phone does not push you into debt. Leave room for error."},
+ {title:"Make your money grow",kind:"Story",source:BABYLON+" and "+PSYCH,idea:"Interest and compound interest: money that earns money grows faster over time. Starting early and being patient matter more than starting big."},
+ {title:"Assets and liabilities",kind:"Conversation",source:RICHDAD,idea:"An asset puts money in your pocket; a liability takes money out. Buy things that earn or save money before things that only cost money."},
+ {title:"Good debt, bad debt",kind:"Phone call",source:TMM+" and "+BABYLON,idea:"Understand the cost of borrowing: interest, fees and pressure. Avoid borrowing for things you want now; if you have debt, make a plan and pay it off, smallest or most expensive first."},
+ {title:"Too good to be true",kind:"Story",source:BABYLON,idea:"Guard your money from loss: check every investment with people who know, never trust promises of quick or guaranteed profit, and be careful with scams on the phone and on social media."},
+ {title:"Knowing what is enough",kind:"Article",source:PSYCH,idea:"If your goals always move higher when your income grows, you will never feel rich. Knowing what is enough protects you from big risks and unhappiness."},
+ {title:"Wealth you cannot see",kind:"Story",source:PSYCH+" and "+MND,idea:"Many people who look rich spend everything to show off. Real wealth is the money you did not spend; quiet savers often end up richer than people with expensive things."},
+ {title:"Why prices go up",kind:"Article",source:"general economics",idea:"Inflation: prices rise over time, so money kept under the mattress buys less each year. Saving must also look for ways to protect money from inflation."},
+ {title:"Keeping money safe",kind:"Conversation",source:"general personal finance",idea:"Banks, savings accounts and mobile money: how they keep money safer than cash at home, what fees to check, and how to protect your PIN and account."},
+ {title:"Earn more by learning more",kind:"Story",source:BABYLON,idea:"Increase your ability to earn: skills, languages (like English) and good work make your income grow. Learning is an investment in yourself."},
+ {title:"A clear goal and a plan",kind:"Interview",source:TGR,idea:"Wealth starts with a definite goal: decide exactly what you want, by when, and write a plan you follow every day. Desire without a plan stays a dream."},
+ {title:"Profit is not the same as sales",kind:"Conversation",source:"small business basics",idea:"For a small business: revenue, costs and profit are different; cash flow matters; keep business money and personal money separate and record every sale and expense."},
+ {title:"Protecting your family",kind:"Article",source:BABYLON,idea:"Insurance and planning protect your family from big losses: illness, accidents, death. Think about what would happen if your income stopped."},
+ {title:"Rent or buy a home?",kind:"Discussion",source:BABYLON,idea:"Owning your home can be a good investment and gives security, but buying too early or with too much debt is dangerous. Compare the real costs."},
+ {title:"Don't put all your eggs in one basket",kind:"Article",source:PSYCH+" and general investing",idea:"Risk and diversification: spreading money over different things lowers the chance of losing everything. Higher possible gain usually means higher risk."},
+ {title:"Time is your best friend",kind:"Story",source:PSYCH,idea:"Patience and staying the course: the biggest gains come from time. Do not panic and sell when things look bad; luck and risk play a part in every result."},
+ {title:"Money for old age",kind:"Article",source:BABYLON,idea:"Plan for the years when you cannot work: start saving for old age early, even small amounts, so you are not dependent on others."},
+ {title:"My money plan",kind:"Discussion",source:"all the books in this course",idea:"Bring everything together: a personal money plan with saving, budgeting, an emergency fund, avoiding bad debt, learning to earn more, and long-term goals."}];
 const SEC={vocab:{en:"Vocabulary",mg:"Voambolana"},grammar:{en:"Grammar",mg:"Fitsipi-pitenenana"},read:{en:"Reading",mg:"Famakiana"},listen:{en:"Listening",mg:"Fihainoana"},speak:{en:"Pronunciation",mg:"Fanononana"}};
 // Question banks. Each test picks a fresh mix (questions not seen before first),
 // so retaking a test gives different questions, and the answer order changes too.
@@ -606,7 +633,7 @@ const CODE_WORDS="mango river lemur rice sun moon star cloud rain tree leaf ston
 const CODE_RE=/^[a-z0-9][a-z0-9-]{5,39}$/;
 function normCode(x){return String(x||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim().toLowerCase().replace(/\s+/g,"-")}
 function makeCode(){const r=new Uint32Array(4);crypto.getRandomValues(r);return [0,1,2].map(i=>CODE_WORDS[r[i]%CODE_WORDS.length]).join("-")+"-"+String(r[3]%10000).padStart(4,"0")}
-function fresh(){return {qSeen:[],placement:null,history:[],level:null,lessons:{},hard:{},seen:{},days:[],slow:false,levelUps:[],code:makeCode(),codeSaved:false,updatedAt:0,syncedAt:0,aiLessons:[],mistakes:[],sounds:[],writing:{},voiceURI:null,pitch:1.15,rate:0.92,vocab:{},daily:null,dailyCount:6}}
+function fresh(){return {qSeen:[],placement:null,history:[],level:null,lessons:{},hard:{},seen:{},days:[],slow:false,levelUps:[],code:makeCode(),codeSaved:false,updatedAt:0,syncedAt:0,aiLessons:[],mistakes:[],sounds:[],writing:{},voiceURI:null,pitch:1.15,rate:0.92,vocab:{},daily:null,dailyCount:6,money:{}}}
 let S;
 try{S=Object.assign(fresh(),JSON.parse(localStorage.getItem(KEY)||"null")||{})}catch(e){S=fresh()}
 if(!S.code||!CODE_RE.test(S.code))S.code=makeCode();
@@ -847,7 +874,7 @@ function openWord(k){
 function closeSheet(){if(PINRES)return pinDone(false);host.innerHTML=""}
 
 /* ================= HOME ================= */
-function nextLesson(){const lv=S.level||1,start=Math.min(lv,2);return ALL().find(l=>l.level>=start&&l.level<=lv&&!S.lessons[l.id])||null}
+function nextLesson(){const lv=S.level||1,start=Math.min(lv,2);return ALL().find(l=>!l.track&&l.level>=start&&l.level<=lv&&!S.lessons[l.id])||null}
 function wordsLearned(){const s=new Set();ALL().forEach(l=>{if(S.lessons[l.id])l.words.forEach(k=>s.add(k))});return s.size+Object.keys(S.vocab||{}).length}
 function home(){
  window.scrollTo(0,0);L=null;T=null;
@@ -868,7 +895,7 @@ function home(){
  const weak=S.placement.weak||[];
  let outline="";
  LEVELS.forEach(L_=>{
-  const ls=ALL().filter(l=>l.level===L_.n);
+  const ls=ALL().filter(l=>l.level===L_.n&&!l.track);
   outline+=`<div class="lvl"><div class="lvl-h"><h3>${L_.n}. ${L_.name}<span class="mg">${L_.mg}</span></h3>${L_.n===S.level?'<span class="tag">Your level</span>':""}</div>`;
   if(ls.length)ls.forEach((l,i)=>{const r=S.lessons[l.id];const isNext=nx&&nx.id===l.id;
    outline+=`<button class="les${r?" done":""}${isNext?" next":""}" data-act="lesson" data-id="${l.id}"><span class="n">${r?"✓":i+1}</span><span class="t"><b>${esc(l.title)}</b>${l.ai?'<span class="ai-tag">AI</span>':""}<small>${esc(l.kind)} · ${esc(l.topic)}${l.level<Math.min(S.level,2)&&!r?" · optional review":""}</small></span>${r?`<span class="s">${r.q}%</span>`:isNext?'<span class="s">Next</span>':""}</button>`});
@@ -888,6 +915,7 @@ function home(){
    :`<section class="hero"><p class="kicker" style="color:inherit;opacity:.8">AI teacher · Mpampianatra AI</p><h2>Ready for a new lesson?</h2><p>The AI teacher writes a fresh Level ${S.level} lesson on a new topic, with your difficult words and weak points in mind.<span class="mg">Hanoratra lesona vaovao ho anao ny mpampianatra AI.</span></p><button class="btn" data-act="ailesson">Create a new lesson</button></section>`}
   ${levelUpCard()}
   ${hardN?`<section class="panel row" style="justify-content:space-between"><div><h3>Difficult words</h3><p class="muted">${hardN} word${hardN>1?"s":""} to practise</p></div><button class="btn" data-act="review">Practise</button></section>`:""}
+  ${moneyCard()}
   <section class="stack tight"><p class="kicker">Your course</p>${outline}</section>
   ${backupPanel()}
   <section class="row" style="justify-content:space-between;border-top:1.5px solid var(--line);padding-top:14px">
@@ -953,11 +981,11 @@ function renderLesson(){
  window.scrollTo(0,0);if(TTS)speechSynthesis.cancel();
  const l=L.lesson;let h=lessonTop();
  if(L.step===0){
-  h+=`<div class="stack"><div><p class="kicker">Level ${l.level} · ${esc(l.topic)} · ${esc(l.kind)}</p><h1 style="margin-top:6px">${esc(l.title)}</h1></div>
+  h+=`<div class="stack"><div><p class="kicker">Level ${l.level} · ${esc(l.topic)} · ${esc(l.kind)}</p><h1 style="margin-top:6px">${esc(l.title)}</h1>${l.source?`<p class="src" style="margin-top:6px">Ideas from ${esc(l.source)}</p>`:""}</div>
   <p class="inst">Read and listen. Tap an underlined word to see its meaning.<span class="mg">Vakio sy henoy. Tsindrio ny teny misy tsipika hahitana ny dikany.</span></p>
   <div class="row"><button class="btn" data-act="playall">${ICON.spk} Listen to all</button><button class="btn toggle" data-act="slow" aria-pressed="${S.slow}">Slow voice</button><button class="iconbtn" data-act="voice">Change voice</button></div>
   <div class="passage">${l.lines.map(([who,t],i)=>`<div class="line"><button class="say" data-act="sayline" data-i="${i}" aria-label="Listen to this line">${ICON.spk}</button><div class="txt">${who?`<span class="who">${esc(who)}</span>`:""}${marked(t)}</div></div>`).join("")}</div>
-  <button class="btn primary" data-act="lnext">Next: words · Teny</button></div>`;
+  ${l.takeaway?moneyBox(l):""}<button class="btn primary" data-act="lnext">Next: words · Teny</button></div>`;
  }else if(L.step===1){
   h+=`<div class="stack"><div><p class="kicker">New words</p><h2>${l.words.length} words from “${esc(l.title)}”</h2></div>
   <p class="inst">Say each word, then tap “Show meaning” to check yourself.<span class="mg">Tenony ny teny tsirairay, avy eo tsindrio “Show meaning”.</span></p>
@@ -983,6 +1011,7 @@ function renderLesson(){
  }
  view.innerHTML=h;
 }
+function moneyBox(l){return `<section class="moneybox"><p class="kicker">Money lesson · Lesona momba ny vola</p><p><b>${esc(l.takeaway.en)}</b><span class="mg">${esc(l.takeaway.mg)}</span></p>${l.action?`<p><b>This week:</b> ${esc(l.action.en)}<span class="mg">${esc(l.action.mg)}</span></p>`:""}</section>`}
 function renderQuestion(){
  const l=L.lesson,q=l.qs[L.qi],n=l.qs.length;
  let h=`<div class="stack"><div class="row" style="justify-content:space-between"><p class="kicker">Question ${L.qi+1} of ${n}</p><span class="muted" style="font-size:.85rem;font-variant-numeric:tabular-nums">${L.right} correct</span></div>`;
@@ -1021,7 +1050,8 @@ function renderFinish(){
   <p class="muted">${L.right} of ${l.qs.length} questions correct${s!==null?` · pronunciation ${pct(s)}%`:""}${typeof L.writeScore==="number"?` · writing ${L.writeScore}%`:""}</p></div>
   <div class="stack" style="margin-top:18px">
   ${missed.length?`<section class="panel stack tight"><h3>Saved for practice</h3><div class="chips">${missed.map(k=>`<span class="chip">${esc(W[k][0])}</span>`).join("")}</div></section>`:""}
-  ${nx?`<button class="btn primary" data-act="lesson" data-id="${nx.id}">Next lesson: ${esc(nx.title)}</button>`:""}
+  ${l.takeaway?moneyBox(l):""}
+  ${l.track==="money"?(moneyNextIndex()>=0?`<button class="btn primary" data-act="money" data-i="${moneyNextIndex()}">Next money lesson: ${esc(MONEY[moneyNextIndex()].title)}</button>`:""):nx?`<button class="btn primary" data-act="lesson" data-id="${nx.id}">Next lesson: ${esc(nx.title)}</button>`:""}
   <button class="btn" data-act="home" style="width:100%;min-height:50px">Back to my course</button></div>`;
 }
 
@@ -1095,8 +1125,34 @@ function normalizeAiLesson(raw,level,topic,kind){
  const speak=(raw.speak||[]).slice(0,4).map(x=>({t:String(x.t||"").trim(),tip:String(x.tip||""),mg:String(x.mg||"")})).filter(x=>x.t);
  if(!lines.length||qs.length<3||!words.length)throw new AIError("default");
  return {id,level,ai:true,created:today(),topic:String(raw.topic||topic).slice(0,60),kind:String(raw.kind||kind).slice(0,30),title:String(raw.title||"New lesson").slice(0,80),lines,words,gloss,qs,speak,
-  writing:raw.writing&&raw.writing.task?{task:String(raw.writing.task),mg:String(raw.writing.mg||"")}:null};
+  writing:raw.writing&&raw.writing.task?{task:String(raw.writing.task),mg:String(raw.writing.mg||"")}:null,
+  takeaway:raw.takeaway&&raw.takeaway.en?{en:String(raw.takeaway.en),mg:String(raw.takeaway.mg||"")}:null,
+  action:raw.action&&raw.action.en?{en:String(raw.action.en),mg:String(raw.action.mg||"")}:null};
 }
+async function openMoney(i){
+ const id=(S.money||{})[i];if(id&&ALL().some(l=>l.id===id))return openLesson(id);
+ const m=MONEY[i],lv=S.level||1;
+ showLoading(`Writing money lesson ${i+1}: ${m.title}`,"Manoratra lesona momba ny vola sy ny teny anglisy ny mpampianatra AI.",9500);
+ try{
+  const raw=await aiCall("lesson",{level:lv,topic:"Money: "+m.title,kind:m.kind,money:{title:m.title,idea:m.idea,source:m.source},focus:(S.placement&&S.placement.weak||[]).map(k=>SEC[k].en),
+   hardWords:[...Object.keys(S.hard).map(k=>W[k]&&W[k][0]).filter(Boolean),...recentVocab()].slice(0,20),mistakes:(S.mistakes||[]).slice(0,15),sounds:(S.sounds||[]).slice(0,15),avoid:ALL().map(l=>l.title)},loadingProgress);
+  const lesson=normalizeAiLesson(raw,lv,"Money",m.kind);
+  Object.assign(lesson,{track:"money",midx:i,source:m.source,topic:"Money & English"});
+  S.aiLessons=S.aiLessons||[];S.aiLessons.push(lesson);S.money=S.money||{};S.money[i]=lesson.id;
+  Object.entries(lesson.gloss).forEach(([k,v])=>{W[k]=v});save();openLesson(lesson.id);
+ }catch(e){aiFailed(e)}
+}
+function moneyNextIndex(){for(let i=0;i<MONEY.length;i++){const id=(S.money||{})[i];if(!id||!S.lessons[id])return i}return -1}
+function moneyCard(){
+ const done=MONEY.filter((m,i)=>S.money&&S.money[i]&&S.lessons[S.money[i]]).length,nx=moneyNextIndex();
+ return `<section class="panel stack tight money"><p class="kicker">Money & English · Vola sy teny anglisy</p>
+  <h3>${nx<0?"Course complete ✓":`Lesson ${nx+1} of ${MONEY.length}: ${esc(MONEY[nx].title)}`}</h3>
+  <p class="muted">Read, listen and answer English questions while you learn how to save, budget and grow money. ${done}/${MONEY.length} done.<span class="mg">Mianara teny anglisy sady mianatra mitahiry sy mampitombo vola.</span></p>
+  ${nx<0?"":`<p class="src">Ideas from ${esc(MONEY[nx].source)}</p><button class="btn primary" data-act="money" data-i="${nx}">${S.money&&S.money[nx]?"Continue lesson":"Start lesson"}</button>`}
+  <button class="link" data-act="moneylist" style="align-self:flex-start">See all ${MONEY.length} money lessons</button><div id="moneyList"></div></section>`}
+function moneyList(){return `<div class="stack tight" style="margin-top:4px">${MONEY.map((m,i)=>{const id=S.money&&S.money[i],r=id&&S.lessons[id];
+ return `<button class="les${r?" done":""}" data-act="money" data-i="${i}"><span class="n">${r?"✓":i+1}</span><span class="t"><b>${esc(m.title)}</b><small>${esc(m.source)}</small></span>${r?`<span class="s">${r.q}%</span>`:""}</button>`}).join("")}
+ <p class="muted" style="font-size:.82rem">These lessons teach general money ideas for learning. They are not personal financial advice.</p></div>`}
 async function createAiLesson(){
  const lv=S.level||1,topic=pickTopic(),kind=KINDS[Math.floor(Math.random()*KINDS.length)];
  showLoading(`Writing a new lesson: ${topic}`,"Manoratra lesona vaovao ho anao ny mpampianatra AI.",9000);
@@ -1106,7 +1162,7 @@ async function createAiLesson(){
   const lesson=normalizeAiLesson(raw,lv,topic,kind);
   S.aiLessons=S.aiLessons||[];S.aiLessons.push(lesson);
   // Keep the backup small: drop the oldest finished AI lessons beyond 30.
-  while(S.aiLessons.length>30){const i=S.aiLessons.findIndex(l=>S.lessons[l.id]);if(i<0)break;const old=S.aiLessons.splice(i,1)[0];Object.keys(old.gloss||{}).forEach(k=>{if(!S.hard[k])delete W[k]})}
+  while(S.aiLessons.filter(l=>!l.track).length>30){const i=S.aiLessons.findIndex(l=>!l.track&&S.lessons[l.id]);if(i<0)break;const old=S.aiLessons.splice(i,1)[0];Object.keys(old.gloss||{}).forEach(k=>{if(!S.hard[k])delete W[k]})}
   Object.entries(lesson.gloss).forEach(([k,v])=>{W[k]=v});save();openLesson(lesson.id);
  }catch(e){aiFailed(e)}
 }
@@ -1330,6 +1386,8 @@ document.addEventListener("click",e=>{
   case "daily":startDaily();break;
   case "dcount":S.dailyCount=+b.dataset.n;save();dailyIntro();break;
   case "dstart":beginDaily();break;
+  case "money":openMoney(+b.dataset.i);break;
+  case "moneylist":{const box=document.getElementById("moneyList");box.innerHTML=box.innerHTML?"":moneyList();b.textContent=box.innerHTML?"Hide the list":`See all ${MONEY.length} money lessons`;break}
   case "dredo":redoDaily();break;
   case "dflip":D.flip=true;renderCard();break;
   case "dnext":S.daily.i++;D.flip=false;save();renderCard();break;

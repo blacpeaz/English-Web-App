@@ -21,6 +21,18 @@ const str = (v, max) => String(v ?? "").slice(0, max);
 const list = (v, n, max) => (Array.isArray(v) ? v.slice(0, n).map((x) => str(x, max)) : []);
 const level = (v) => Math.min(5, Math.max(1, parseInt(v, 10) || 1));
 
+// Extra rules when the lesson also teaches personal finance ("Money & English" course).
+const MONEY_RULES = (m, lv) =>
+  `\n\nTHIS LESSON ALSO TEACHES PERSONAL FINANCE. The money idea: "${str(m.title, 80)}": ${str(m.idea, 400)}. Inspired by: ${str(m.source, 160)}.\n` +
+  `- The main text must teach this idea clearly while staying a good English lesson at the level. Use a story, conversation or short article set mostly in Madagascar, with prices and amounts in ariary (Ar) that are realistic, and everyday situations such as a small shop, a market seller, a salary, a family budget, mobile money or a microfinance loan.\n` +
+  `- Mention the book the idea comes from once, by title and author. Explain its ideas in your own words. Do NOT copy or closely paraphrase sentences from books still under copyright (The Psychology of Money, Think and Grow Rich, Rich Dad Poor Dad, The Millionaire Next Door, The Total Money Makeover). Short famous lines from The Richest Man in Babylon (1926, public domain) may be quoted.\n` +
+  `- Questions: at least 2 comprehension questions must check understanding of the money idea, and ${lv >= 2 ? "one question must need a small calculation with ariary amounts (e.g. saving 10% of a salary, simple interest)" : "one question may use a very simple ariary amount"}.\n` +
+  `- Glossary: include the key money words of the lesson (e.g. income, expenses, savings, interest, debt, budget, profit, asset) with correct Malagasy.\n` +
+  `- takeaway: the money lesson in one or two simple English sentences (en) and in Malagasy (mg).\n` +
+  `- action: one small, practical thing to do this week (en) and in Malagasy (mg), e.g. "Write down everything you spend for 7 days."\n` +
+  `- writing: a reflection task about the learner's own money habits or plans, related to the idea.\n` +
+  `- Teach general, careful ideas; no specific investment products, no promises of quick money, and remind that risky offers should be checked with someone trusted.`;
+
 // Which words to teach at each level: aim at the top of the learner's level and the next one up.
 const WORD_BAND = {
   1: "everyday A1-A2 words beyond the very first basics (e.g. borrow, kitchen, angry, cheap, early, receipt).",
@@ -71,6 +83,8 @@ const SCHEMAS = {
       match: { type: "array", items: S },
       speak: { type: "array", items: { type: "object", required: ["t", "tip", "mg"], properties: { t: S, tip: S, mg: S } } },
       writing: { type: "object", required: ["task", "mg"], properties: { task: S, mg: S } },
+      takeaway: { type: "object", required: ["en", "mg"], properties: { en: S, mg: S } },
+      action: { type: "object", required: ["en", "mg"], properties: { en: S, mg: S } },
     },
   },
   writing: {
@@ -164,7 +178,8 @@ function build(task, p) {
         `- match: 4 glossary keys for a matching exercise.\n` +
         `- speak: 3 sentences from the text (short enough to say in one breath at this level). Each tip targets a real problem for Malagasy speakers: adding a vowel after final consonants, the letter o read as "ou", TH, silent letters (h in hour, l in would/should), -ed endings, word stress, long vs short vowels. mg = the tip in short Malagasy.\n` +
         `- writing: a short writing task (${lv <= 2 ? "3-5 sentences" : lv === 3 ? "5-8 sentences" : "a paragraph of 80-150 words"}) connected to the lesson, plus the task in Malagasy (mg).\n` +
-        `- No politics, religion or upsetting content.`,
+        `- No politics, religion or upsetting content.` +
+        (p.money ? MONEY_RULES(p.money, lv) : ""),
       user: JSON.stringify({
         level: lv,
         topic: str(p.topic, 60),
