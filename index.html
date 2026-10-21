@@ -173,6 +173,13 @@ button:focus-visible,.w:focus-visible{outline:3px solid var(--gold);outline-offs
 /* Sheet */
 .scrim{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:20}
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--surface);border-radius:20px 20px 0 0;border-top:1.5px solid var(--line);max-width:580px;margin:0 auto;padding-top:18px;padding-bottom:calc(22px + env(safe-area-inset-bottom, 0px));padding-left:max(20px, env(safe-area-inset-left, 0px));padding-right:max(20px, env(safe-area-inset-right, 0px));display:flex;flex-direction:column;gap:10px;max-height:85%;overflow:auto}
+.codebox{font:500 1.15rem/1.3 var(--mono);letter-spacing:.02em;background:var(--surface);border:1.5px dashed var(--gold);border-radius:10px;padding:12px 14px;text-align:center;overflow-wrap:anywhere;user-select:all}
+.codebox.inline{display:inline;font-size:.95rem;padding:2px 6px;border-radius:6px}
+.input{width:100%;min-height:52px;padding:10px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font:500 1.05rem var(--mono)}
+.input:focus-visible{outline:3px solid var(--gold);outline-offset:1px}
+.sync{font-size:.78rem;font-weight:700;padding:3px 10px;border-radius:99px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.sync.ok{background:var(--green-soft);color:var(--green)}
+.review-item{border-left:3px solid var(--red);padding-left:12px;display:flex;flex-direction:column;gap:2px;font-size:.95rem}
 .confirm{background:var(--red-soft);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
 </style>
 </head>
@@ -417,12 +424,126 @@ const TEST=[
  {s:"speak",text:"I think learning English is important for my future."}
 ];
 
+const LEVEL_TESTS={
+ 1:[
+  {s:"vocab",q:"“Lafo” in English is ___.",o:["cheap","expensive","sweet","fresh"],a:1},
+  {s:"vocab",q:"A person who grows rice is a ___.",o:["teacher","farmer","driver","seller"],a:1},
+  {s:"vocab",q:"The day after today is ___.",o:["yesterday","tomorrow","morning","evening"],a:1},
+  {s:"grammar",q:"My mother ___ clothes at the market.",o:["sell","sells","selling"],a:1},
+  {s:"grammar",q:"___ much is this shirt?",o:["What","How","Where"],a:1},
+  {s:"grammar",q:"We ___ dinner together every evening.",o:["eats","eat","eating"],a:1},
+  {s:"read",p:"Tojo works in a warehouse in Antananarivo. He starts at eight o'clock and finishes at five. At lunch he eats rice with his friends. After work, he goes to an English class.",q:"What does Tojo do after work?",o:["He eats rice.","He goes to an English class.","He sleeps.","He goes to the market."],a:1},
+  {s:"read",p:"Tojo works in a warehouse in Antananarivo. He starts at eight o'clock and finishes at five. At lunch he eats rice with his friends. After work, he goes to an English class.",q:"When does Tojo finish work?",o:["At eight","At twelve","At five","At seven"],a:2},
+  {s:"listen",audio:"Two kilos of tomatoes cost three thousand ariary.",q:"How much are two kilos of tomatoes?",o:["2,000 ariary","3,000 ariary","300 ariary","4,000 ariary"],a:1},
+  {s:"listen",audio:"My sister lives in Fianarantsoa with her husband.",q:"Who lives in Fianarantsoa?",o:["My brother","My sister","My mother","My friend"],a:1}],
+ 2:[
+  {s:"vocab",q:"A fixed time to see the doctor is an ___.",o:["appointment","advice","habit","holiday"],a:0},
+  {s:"vocab",q:"If something is urgent, it is…",o:["not important","needed now","very cheap","finished"],a:1},
+  {s:"vocab",q:"The opposite of “arrive” is ___.",o:["stay","leave","travel","buy"],a:1},
+  {s:"grammar",q:"Last week we ___ to Toamasina.",o:["travel","travelled","will travel"],a:1},
+  {s:"grammar",q:"Tomorrow I ___ call the client.",o:["will","did","was"],a:0},
+  {s:"grammar",q:"You ___ sleep more.",o:["should","should to","shoulds"],a:0},
+  {s:"grammar",q:"She didn't ___ the bus.",o:["took","take","takes"],a:1},
+  {s:"read",p:"Last Saturday, Miora wanted to buy a new phone. The first shop was too expensive, so she went to a second shop near the bus station. The price there was 20% lower. She bought the phone and used the money she saved to buy a phone case.",q:"Why did Miora go to a second shop?",o:["The first shop was closed.","The first shop was too expensive.","She wanted a case.","Her friend told her."],a:1},
+  {s:"read",p:"Last Saturday, Miora wanted to buy a new phone. The first shop was too expensive, so she went to a second shop near the bus station. The price there was 20% lower. She bought the phone and used the money she saved to buy a phone case.",q:"What did she do with the money she saved?",o:["She bought a phone case.","She bought food.","She kept it.","She paid for the bus."],a:0},
+  {s:"listen",audio:"I'm afraid the meeting has moved from Tuesday to Thursday afternoon.",q:"When is the meeting now?",o:["Tuesday morning","Tuesday afternoon","Thursday afternoon","Thursday morning"],a:2}]
+};
+
 /* ================= STATE ================= */
 const KEY="miteny-english-v1";
-function fresh(){return {placement:null,history:[],level:null,lessons:{},hard:{},seen:{},days:[],slow:false}}
+const CODE_WORDS="mango river lemur rice sun moon star cloud rain tree leaf stone lake hill sea fish bird frog bean corn salt honey bread milk tea apple lemon orange banana vanilla pepper green blue red gold silver happy quick calm brave kind bright warm cool soft tall small house door road bridge boat train book pen chair table lamp drum song dance smile friend".split(" ");
+const CODE_RE=/^[a-z]+-[a-z]+-[a-z]+-\d{4}$/;
+function makeCode(){const r=new Uint32Array(4);crypto.getRandomValues(r);return [0,1,2].map(i=>CODE_WORDS[r[i]%CODE_WORDS.length]).join("-")+"-"+String(r[3]%10000).padStart(4,"0")}
+function fresh(){return {placement:null,history:[],level:null,lessons:{},hard:{},seen:{},days:[],slow:false,levelUps:[],code:makeCode(),codeSaved:false,updatedAt:0,syncedAt:0}}
 let S;
 try{S=Object.assign(fresh(),JSON.parse(localStorage.getItem(KEY)||"null")||{})}catch(e){S=fresh()}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+if(!S.code||!CODE_RE.test(S.code))S.code=makeCode();
+function persistLocal(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function save(){S.updatedAt=Date.now();persistLocal();scheduleSync()}
+persistLocal();
+
+/* ================= ONLINE BACKUP ================= */
+const API="/api/progress";const SYNC={state:"idle"};let syncTimer=null,syncBusy=false;
+function syncText(){
+ if(SYNC.state==="ok"){const m=Math.round((Date.now()-(S.syncedAt||Date.now()))/60000);return "Backed up"+(m>=1?` · ${m} min ago`:"")}
+ return {offline:"Offline · backs up later",unavailable:"Not available on this page",saving:"Backing up…",idle:"Waiting to back up"}[SYNC.state]||"Waiting to back up";
+}
+function setSync(st){SYNC.state=st;const el=document.getElementById("syncStatus");if(el){el.textContent=syncText();el.className="sync"+(st==="ok"?" ok":"")}}
+function scheduleSync(){clearTimeout(syncTimer);syncTimer=setTimeout(pushNow,1500)}
+function onHome(){return !!document.querySelector(".brand")}
+function adoptRemote(rec){const code=S.code;S=Object.assign(fresh(),rec.data,{code,codeSaved:true,updatedAt:rec.updatedAt,syncedAt:Date.now()});persistLocal();setSync("ok");if(onHome())home()}
+async function pushNow(){
+ if(syncBusy){scheduleSync();return}
+ if(!navigator.onLine){setSync("offline");return}
+ syncBusy=true;setSync("saving");
+ try{
+  const r=await fetch(API,{method:"PUT",headers:{"content-type":"application/json"},body:JSON.stringify({code:S.code,updatedAt:S.updatedAt,data:S})});
+  const j=await r.json().catch(()=>null);
+  if(!j){setSync("unavailable")}
+  else if(r.status===409&&j.stale){const g=await fetch(API+"?code="+encodeURIComponent(S.code));if(g.ok)adoptRemote(await g.json())}
+  else if(r.ok){S.syncedAt=Date.now();persistLocal();setSync("ok")}
+  else setSync("offline");
+ }catch(e){setSync("offline")}
+ syncBusy=false;
+}
+async function pullOnStart(){
+ if(!navigator.onLine){setSync("offline");return}
+ try{
+  const r=await fetch(API+"?code="+encodeURIComponent(S.code));
+  const j=await r.json().catch(()=>null);
+  if(!j){setSync("unavailable");return}
+  if(r.status===404){if(S.placement)pushNow();else setSync("idle");return}
+  if(!r.ok){setSync("offline");return}
+  if(j.updatedAt>(S.updatedAt||0))adoptRemote(j);
+  else if(j.updatedAt<(S.updatedAt||0))pushNow();
+  else{S.syncedAt=Date.now();persistLocal();setSync("ok")}
+ }catch(e){setSync("offline")}
+}
+window.addEventListener("online",()=>pushNow());
+async function doRestore(){
+ const code=document.getElementById("restoreCode").value.trim().toLowerCase().replace(/\s+/g,"-");
+ const msg=document.getElementById("restoreMsg");
+ if(!CODE_RE.test(code)){msg.textContent="A recovery code looks like this: mango-river-lemur-4821 (three words and four numbers).";return}
+ msg.textContent="Looking for your progress…";
+ try{
+  const r=await fetch(API+"?code="+encodeURIComponent(code));
+  const j=await r.json().catch(()=>null);
+  if(!j){msg.textContent="Online backup works only in the installed app at miteny-english.netlify.app.";return}
+  if(r.status===404){msg.textContent="No progress found for this code. Check the spelling and try again.";return}
+  if(!r.ok)throw 0;
+  S=Object.assign(fresh(),j.data,{code,codeSaved:true,updatedAt:j.updatedAt,syncedAt:Date.now()});persistLocal();setSync("ok");home();
+ }catch(e){msg.textContent="Could not connect. Check the internet connection and try again."}
+}
+function restoreForm(){return `<div class="stack tight"><label for="restoreCode"><b>Recovery code</b><span class="mg">Kaody famerenana</span></label>
+ <input id="restoreCode" class="input" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="mango-river-lemur-4821">
+ ${S.placement?'<p class="muted" style="font-size:.85rem">This replaces the progress on this phone.</p>':""}
+ <button class="btn primary" data-act="dorestore">Restore my progress</button><p id="restoreMsg" class="muted" aria-live="polite"></p></div>`}
+function codeCard(){if(S.codeSaved)return "";return `<section class="panel stack tight" style="border-color:var(--gold);background:var(--gold-soft)"><p class="kicker">Important · Zava-dehibe</p><h3>Write down your recovery code</h3>
+ <p>If this phone is lost or changed, this code brings back all your progress.<span class="mg">Raha very na miova ny finday, ity kaody ity no hamerenana ny fandrosoanao rehetra.</span></p>
+ <p class="codebox">${esc(S.code)}</p><div class="row"><button class="btn" data-act="copycode">Copy</button><button class="btn" data-act="codesaved">I wrote it down</button></div></section>`}
+function backupPanel(){return `<section class="panel stack tight"><div class="row" style="justify-content:space-between"><h3>Online backup</h3><span class="sync${SYNC.state==="ok"?" ok":""}" id="syncStatus">${syncText()}</span></div>
+ <p class="muted" style="font-size:.9rem">Progress backs up by itself after each lesson. Recovery code: <b class="codebox inline">${esc(S.code)}</b></p>
+ <div class="row"><button class="btn ghost" data-act="copycode">Copy code</button><button class="btn ghost" data-act="showrestore">Use another code</button></div><div id="restoreBox"></div></section>`}
+
+/* ================= LEVEL-UP ================= */
+function levelUpState(){const lv=S.level||1;if(!LEVEL_TESTS[lv])return {none:true,lv};const ls=LESSONS.filter(l=>l.level===lv),done=ls.filter(l=>S.lessons[l.id]);
+ const avg=done.length?done.reduce((a,l)=>a+S.lessons[l.id].q,0)/done.length:0;return {lv,total:ls.length,done:done.length,avg:Math.round(avg),ready:done.length===ls.length&&avg>=70}}
+function levelUpCard(){const st=levelUpState();if(st.none)return "";
+ if(st.ready)return `<section class="panel stack tight" style="border-color:var(--gold)"><p class="kicker">Level-up test unlocked</p><h3>Ready for Level ${st.lv+1}?</h3>
+  <p class="muted">10 questions. Score 8 or more to move up.<span class="mg">Fanontaniana 10. Mila 8 farafahakeliny vao miakatra ambaratonga.</span></p><button class="btn primary" data-act="levelup">Take the level-up test</button></section>`;
+ return `<section class="panel stack tight"><div class="row" style="justify-content:space-between"><h3>Level-up test</h3><span class="muted" style="font-size:.85rem;font-variant-numeric:tabular-nums">${st.done}/${st.total} lessons</span></div><div class="meter"><i style="width:${pct(st.done/st.total)}%"></i></div>
+  <p class="muted" style="font-size:.9rem">Finish all Level ${st.lv} lessons with an average of 70% or more to unlock the test for Level ${st.lv+1}.${st.done?` Your average now: ${st.avg}%.`:""}<span class="mg">Vitao ny lesona rehetra amin'ny ambaratonga ${st.lv} (70% farafahakeliny).</span></p></section>`}
+function startLevelUp(){const lv=S.level||1;T={items:shuffle(LEVEL_TESTS[lv]),kind:"levelup",level:lv,i:0,ans:[],spk:{}};renderTest()}
+function finishLevelUp(){
+ const n=T.items.length,c=T.ans.filter(Boolean).length,pass=c>=Math.ceil(n*0.75),from=T.level;
+ S.levelUps=S.levelUps||[];S.levelUps.push({date:today(),from,score:c,of:n,pass});if(pass&&S.level===from)S.level=from+1;markDay();save();
+ const wrong=T.items.map((it,i)=>({it,ok:T.ans[i]})).filter(x=>!x.ok);window.scrollTo(0,0);
+ view.innerHTML=`<div class="stack" style="text-align:center;align-items:center;padding-top:12px"><p class="kicker">Level-up test · Level ${from}</p><span class="score-ring">${c}/${n}</span>
+  <h2>${pass?`Congratulations! You are now Level ${from+1}.`:"Not yet. You need 8 to move up."}</h2>
+  <p class="muted">${pass?`${LEVELS[from].name}<span class="mg">${LEVELS[from].mg}</span>`:"Repeat a lesson or practise your difficult words, then try again.<span class='mg'>Avereno ny lesona iray, dia andramo indray.</span>"}</p></div>
+  <div class="stack" style="margin-top:18px">${wrong.length?`<section class="panel stack tight"><h3>Check these answers</h3>${wrong.map(({it})=>`<div class="review-item"><span>${esc(it.q)}</span><span><b>Answer:</b> ${esc(it.o[it.a])}</span></div>`).join("")}</section>`:""}
+  <button class="btn primary" data-act="home">Back to my course</button></div>`;
+}
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist().catch(()=>{})}catch(e){}
 const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
 function markDay(){const t=today();if(!S.days.includes(t))S.days.push(t);save()}
@@ -525,6 +646,7 @@ function home(){
     <h1>Let's find your English level.</h1>
     <p>Answer 19 short questions: words, grammar, reading, listening and speaking. It takes about 10 minutes.<span class="mg">Andao ho fantarina ny haavon'ny teny anglisy anao. Fanontaniana fohy 19, eo amin'ny 10 minitra eo.</span></p>
     <button class="btn" data-act="starttest">Start the level test</button></section>
+   <section class="panel stack tight" id="restoreBox"><h3>Already started on another phone?</h3><p class="muted">Type your recovery code to bring back your progress.<span class="mg">Soraty ny kaody famerenana mba hamerenana ny fandrosoanao.</span></p><button class="btn" data-act="showrestore">Restore my progress</button></section>
    <section class="panel stack tight"><h3>How the course works</h3>
     <p>Each lesson has a short text to read and hear, tap-to-translate words in Malagasy and French, questions, and speaking practice that checks your pronunciation.</p>
     <p class="muted" style="font-size:.9rem">Tip: use Chrome on an Android phone and allow the microphone for speaking practice.</p></section></div>`;
@@ -542,7 +664,7 @@ function home(){
   outline+="</div>";
  });
  view.innerHTML=brand+`<div class="stack">
-  <div class="stats">
+  ${codeCard()}<div class="stats">
    <div class="stat"><b>${lv.n}</b><small>${lv.name}</small></div>
    <div class="stat"><b>${streak()}</b><small>Day streak</small></div>
    <div class="stat"><b>${done}/${LESSONS.length}</b><small>Lessons done</small></div>
@@ -550,8 +672,10 @@ function home(){
   ${weak.length?`<div class="stack tight"><p class="kicker">Your focus</p><div class="chips">${weak.map(s=>`<span class="chip">${SEC[s].en}</span>`).join("")}</div></div>`:""}
   ${nx?`<section class="hero"><p class="kicker" style="color:inherit;opacity:.8">Next lesson · ${esc(nx.kind)}</p><h2>${esc(nx.title)}</h2><p>${esc(nx.topic)} · Level ${nx.level}</p><button class="btn" data-act="lesson" data-id="${nx.id}">Start lesson · Atombohy</button></section>`
    :`<section class="hero"><h2>All starter lessons done!</h2><p>Practise your difficult words, or repeat a lesson to improve your score.<span class="mg">Vita ny lesona rehetra.</span></p></section>`}
+  ${levelUpCard()}
   ${hardN?`<section class="panel row" style="justify-content:space-between"><div><h3>Difficult words</h3><p class="muted">${hardN} word${hardN>1?"s":""} to practise</p></div><button class="btn" data-act="review">Practise</button></section>`:""}
   <section class="stack tight"><p class="kicker">Your course</p>${outline}</section>
+  ${backupPanel()}
   <section class="row" style="justify-content:space-between;border-top:1.5px solid var(--line);padding-top:14px">
    <button class="link" data-act="starttest">Retake level test</button><button class="link" data-act="askreset" style="color:var(--muted)">Reset progress</button></section>
   <div id="resetBox"></div></div>`;
@@ -559,30 +683,30 @@ function home(){
 
 /* ================= PLACEMENT TEST ================= */
 let T=null;
-function startTest(){T={i:0,ans:[],spk:{}};renderTest()}
+function startTest(){T={items:TEST,kind:"placement",i:0,ans:[],spk:{}};renderTest()}
 function renderTest(){
  window.scrollTo(0,0);
- const it=TEST[T.i],n=TEST.length,sec=SEC[it.s];
+ const it=T.items[T.i],n=T.items.length,sec=SEC[it.s];
  let body="";
- if(it.s==="read")body+=`<div class="passage reading">${READING.map(p=>`<p>${esc(p)}</p>`).join("")}</div>`;
+ if(it.s==="read")body+=`<div class="passage reading">${(it.p?[it.p]:READING).map(p=>`<p>${esc(p)}</p>`).join("")}</div>`;
  if(it.s==="listen")body+=`<div class="row"><button class="btn big" data-act="tplay">${ICON.spk} Play</button><button class="btn ghost" data-act="tplayslow">Slow</button></div>`;
  if(it.s==="speak"){T.spkId=null;const blk=speakBlock(it.text);T.spkId="s"+spkN;
   body+=`<p class="inst">Tap Listen, then tap Record and read the sentence aloud.<span class="mg">Henoy aloha, avy eo tsindrio Record ary vakio mafy ilay fehezanteny.</span></p>${blk}<button class="btn primary" data-act="tnext">${T.i===n-1?"See my result":"Next"}</button>`}
  else body+=`<div class="opts">${it.o.map((o,i)=>`<button class="opt" data-act="tans" data-i="${i}">${esc(o)}</button>`).join("")}</div>`;
  view.innerHTML=`<div class="top"><button class="x" data-act="home" aria-label="Stop the test">${ICON.x}</button><div class="bar"><i style="width:${pct(T.i/n)}%"></i></div><span class="muted" style="font-size:.85rem;font-variant-numeric:tabular-nums">${T.i+1}/${n}</span></div>
- <div class="stack"><p class="kicker">${sec.en} <span class="mg inline">· ${sec.mg}</span></p>
+ <div class="stack"><p class="kicker">${T.kind==="levelup"?`Level-up test · `:""}${sec.en} <span class="mg inline">· ${sec.mg}</span></p>
  ${it.s==="speak"?"<h2>Read this sentence aloud</h2>":`<h2>${esc(it.q)}</h2>`}${body}</div>`;
  if(it.s==="listen")setTimeout(()=>say(it.audio,false),300);
 }
 function testAnswer(i,btn){
- const it=TEST[T.i];if(T.ans[T.i]!==undefined)return;T.ans[T.i]=i===it.a;
+ const it=T.items[T.i];if(T.ans[T.i]!==undefined)return;T.ans[T.i]=i===it.a;
  view.querySelectorAll(".opt").forEach(b=>b.disabled=true);btn.classList.add("picked");
  setTimeout(testNext,380);
 }
 function testNext(){
- const it=TEST[T.i];if(it.s==="speak")T.spk[T.i]=SPKRES[T.spkId];
+ const it=T.items[T.i];if(it.s==="speak")T.spk[T.i]=SPKRES[T.spkId];
  if(rec){try{rec.abort()}catch(e){}}
- T.i++;if(T.i<TEST.length)renderTest();else finishTest();
+ T.i++;if(T.i<T.items.length)renderTest();else if(T.kind==="levelup")finishLevelUp();else finishTest();
 }
 function finishTest(){
  const sec={vocab:[0,0],grammar:[0,0],read:[0,0],listen:[0,0]};const sp=[];
@@ -705,8 +829,8 @@ document.addEventListener("click",e=>{
  switch(a){
   case "home":if(rec){try{rec.abort()}catch(x){}}if(TTS)speechSynthesis.cancel();home();break;
   case "starttest":startTest();break;
-  case "tplay":say(TEST[T.i].audio,false);break;
-  case "tplayslow":say(TEST[T.i].audio,true);break;
+  case "tplay":say(T.items[T.i].audio,false);break;
+  case "tplayslow":say(T.items[T.i].audio,true);break;
   case "tans":testAnswer(+b.dataset.i,b);break;
   case "tnext":testNext();break;
   case "lesson":openLesson(b.dataset.id);break;
@@ -730,10 +854,18 @@ document.addEventListener("click",e=>{
   case "closesheet":closeSheet();break;
   case "askreset":document.getElementById("resetBox").innerHTML=`<div class="confirm"><p><b>Delete all progress?</b> Your level, scores and word list will be removed from this phone.</p><div class="row"><button class="btn" data-act="doreset" style="border-color:var(--red);color:var(--red)">Delete progress</button><button class="btn ghost" data-act="home">Keep it</button></div></div>`;break;
   case "doreset":S=fresh();save();home();break;
+  case "copycode":{const done=()=>{b.textContent="Copied";setTimeout(()=>{b.textContent=b.dataset.label||"Copy"},1500)};b.dataset.label=b.dataset.label||b.textContent;
+   try{navigator.clipboard.writeText(S.code).then(done).catch(()=>selectCode())}catch(x){selectCode()}break}
+  case "codesaved":S.codeSaved=true;save();home();break;
+  case "showrestore":{const box=document.getElementById("restoreBox");box.innerHTML=restoreForm();box.querySelector("input").focus();break}
+  case "dorestore":doRestore();break;
+  case "levelup":startLevelUp();break;
  }
 });
-document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet();if(e.key==="Enter"&&e.target.id==="restoreCode")doRestore()});
+function selectCode(){const el=document.querySelector(".codebox");if(!el)return;const r=document.createRange();r.selectNodeContents(el);const sel=getSelection();sel.removeAllRanges();sel.addRange(r)}
 home();
+pullOnStart();
 </script>
 
 </body>
