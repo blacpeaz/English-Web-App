@@ -201,6 +201,17 @@ button:focus-visible,.w:focus-visible{outline:3px solid var(--gold);outline-offs
 .slider .ends{grid-column:1/-1;display:flex;justify-content:space-between;color:var(--muted);font-size:.78rem}
 .iconbtn{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:6px 12px;border-radius:999px;border:1.5px solid var(--line);background:var(--surface);font-weight:700;font-size:.85rem}
 .iconbtn svg{width:16px;height:16px}
+.daily{border-color:var(--green)}
+.fcard{background:var(--surface);border:1.5px solid var(--line);border-radius:18px;padding:22px 18px;display:flex;flex-direction:column;gap:10px;min-height:170px}
+.fcard .head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.fcard .head>div{min-width:0}
+.fword{display:block;font:800 2.2rem/1.1 var(--display);letter-spacing:-.02em;overflow-wrap:anywhere}
+.pos{display:block;margin-top:4px;font-size:.8rem;font-weight:700;color:var(--muted);letter-spacing:.04em}
+.exs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.exs li{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start}
+.exs li span{min-width:0;padding-top:6px}
+.wrow{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center;text-align:left;border-top:1px solid var(--line);padding-top:8px}
+details.panel summary{list-style-position:inside}
 .confirm{background:var(--red-soft);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
 </style>
 </head>
@@ -592,9 +603,10 @@ const LEVEL_TESTS={1:true,2:true}; // Levels 1–2 come from the banks above; Le
 /* ================= STATE ================= */
 const KEY="miteny-english-v1";
 const CODE_WORDS="mango river lemur rice sun moon star cloud rain tree leaf stone lake hill sea fish bird frog bean corn salt honey bread milk tea apple lemon orange banana vanilla pepper green blue red gold silver happy quick calm brave kind bright warm cool soft tall small house door road bridge boat train book pen chair table lamp drum song dance smile friend".split(" ");
-const CODE_RE=/^[a-z]+-[a-z]+-[a-z]+-\d{4}$/;
+const CODE_RE=/^[a-z0-9][a-z0-9-]{5,39}$/;
+function normCode(x){return String(x||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim().toLowerCase().replace(/\s+/g,"-")}
 function makeCode(){const r=new Uint32Array(4);crypto.getRandomValues(r);return [0,1,2].map(i=>CODE_WORDS[r[i]%CODE_WORDS.length]).join("-")+"-"+String(r[3]%10000).padStart(4,"0")}
-function fresh(){return {qSeen:[],placement:null,history:[],level:null,lessons:{},hard:{},seen:{},days:[],slow:false,levelUps:[],code:makeCode(),codeSaved:false,updatedAt:0,syncedAt:0,aiLessons:[],mistakes:[],sounds:[],writing:{},voiceURI:null,pitch:1.15,rate:0.92}}
+function fresh(){return {qSeen:[],placement:null,history:[],level:null,lessons:{},hard:{},seen:{},days:[],slow:false,levelUps:[],code:makeCode(),codeSaved:false,updatedAt:0,syncedAt:0,aiLessons:[],mistakes:[],sounds:[],writing:{},voiceURI:null,pitch:1.15,rate:0.92,vocab:{},daily:null,dailyCount:6}}
 let S;
 try{S=Object.assign(fresh(),JSON.parse(localStorage.getItem(KEY)||"null")||{})}catch(e){S=fresh()}
 if(!S.code||!CODE_RE.test(S.code))S.code=makeCode();
@@ -603,7 +615,7 @@ function save(){S.updatedAt=Date.now();persistLocal();scheduleSync()}
 persistLocal();
 /* AI lessons carry their own glossary; register it so the word help works. */
 function registerAi(){(S.aiLessons||[]).forEach(l=>{if(l.gloss)Object.entries(l.gloss).forEach(([k,v])=>{W[k]=v})})}
-registerAi();
+registerAi();registerVocab();
 const ALL=()=>LESSONS.concat(S.aiLessons||[]);
 
 /* ================= ONLINE BACKUP ================= */
@@ -615,7 +627,7 @@ function syncText(){
 function setSync(st){SYNC.state=st;const el=document.getElementById("syncStatus");if(el){el.textContent=syncText();el.className="sync"+(st==="ok"?" ok":"")}}
 function scheduleSync(){clearTimeout(syncTimer);syncTimer=setTimeout(pushNow,1500)}
 function onHome(){return !!document.querySelector(".brand")}
-function adoptRemote(rec){const code=S.code;S=Object.assign(fresh(),rec.data,{code,codeSaved:true,updatedAt:rec.updatedAt,syncedAt:Date.now()});registerAi();persistLocal();setSync("ok");if(onHome())home()}
+function adoptRemote(rec){const code=S.code;S=Object.assign(fresh(),rec.data,{code,codeSaved:true,updatedAt:rec.updatedAt,syncedAt:Date.now()});registerAi();registerVocab();persistLocal();setSync("ok");if(onHome())home()}
 async function pushNow(){
  if(syncBusy){scheduleSync();return}
  if(!navigator.onLine){setSync("offline");return}
@@ -645,29 +657,55 @@ async function pullOnStart(){
 }
 window.addEventListener("online",()=>pushNow());
 async function doRestore(){
- const code=document.getElementById("restoreCode").value.trim().toLowerCase().replace(/\s+/g,"-");
+ const code=normCode(document.getElementById("restoreCode").value);
  const msg=document.getElementById("restoreMsg");
- if(!CODE_RE.test(code)){msg.textContent="A recovery code looks like this: mango-river-lemur-4821 (three words and four numbers).";return}
+ if(!CODE_RE.test(code)){msg.textContent="A recovery code has at least 6 letters or numbers, for example fara-english-2026 or mango-river-lemur-4821.";return}
  msg.textContent="Looking for your progress…";
  try{
   const r=await fetch(API+"?code="+encodeURIComponent(code));
   const j=await r.json().catch(()=>null);
   if(!j){msg.textContent="Online backup works only in the installed app at miteny-english.netlify.app.";return}
   if(r.status===404){msg.textContent="No progress found for this code. Check the spelling and try again.";return}
+  if(r.status===429){msg.textContent="Too many wrong codes today. Try again tomorrow.";return}
   if(!r.ok)throw 0;
-  S=Object.assign(fresh(),j.data,{code,codeSaved:true,updatedAt:j.updatedAt,syncedAt:Date.now()});registerAi();persistLocal();setSync("ok");home();
+  S=Object.assign(fresh(),j.data,{code,codeSaved:true,updatedAt:j.updatedAt,syncedAt:Date.now()});registerAi();registerVocab();persistLocal();setSync("ok");home();
  }catch(e){msg.textContent="Could not connect. Check the internet connection and try again."}
 }
 function restoreForm(){return `<div class="stack tight"><label for="restoreCode"><b>Recovery code</b><span class="mg">Kaody famerenana</span></label>
- <input id="restoreCode" class="input" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="mango-river-lemur-4821">
+ <input id="restoreCode" class="input" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="fara-english-2026">
  ${S.placement?'<p class="muted" style="font-size:.85rem">This replaces the progress on this phone.</p>':""}
  <button class="btn primary" data-act="dorestore">Restore my progress</button><p id="restoreMsg" class="muted" aria-live="polite"></p></div>`}
 function codeCard(){if(S.codeSaved)return "";return `<section class="panel stack tight" style="border-color:var(--gold);background:var(--gold-soft)"><p class="kicker">Important · Zava-dehibe</p><h3>Write down your recovery code</h3>
  <p>If this phone is lost or changed, this code brings back all your progress.<span class="mg">Raha very na miova ny finday, ity kaody ity no hamerenana ny fandrosoanao rehetra.</span></p>
- <p class="codebox">${esc(S.code)}</p><div class="row"><button class="btn" data-act="copycode">Copy</button><button class="btn" data-act="codesaved">I wrote it down</button></div></section>`}
+ <p class="codebox">${esc(S.code)}</p><div class="row"><button class="btn" data-act="copycode">Copy</button><button class="btn" data-act="codesaved">I wrote it down</button><button class="btn ghost" data-act="owncode" data-box="ownBox">Choose my own code</button></div><div id="ownBox"></div></section>`}
 function backupPanel(){return `<section class="panel stack tight"><div class="row" style="justify-content:space-between"><h3>Online backup</h3><span class="sync${SYNC.state==="ok"?" ok":""}" id="syncStatus">${syncText()}</span></div>
  <p class="muted" style="font-size:.9rem">Progress backs up by itself after each lesson. Recovery code: <b class="codebox inline">${esc(S.code)}</b></p>
- <div class="row"><button class="btn ghost" data-act="copycode">Copy code</button><button class="btn ghost" data-act="showrestore">Use another code</button></div><div id="restoreBox"></div></section>`}
+ <div class="row"><button class="btn ghost" data-act="copycode">Copy code</button><button class="btn ghost" data-act="owncode">Choose my own code</button><button class="btn ghost" data-act="showrestore">Use another code</button></div><div id="restoreBox"></div></section>`}
+let FLASH="";
+function flashBlock(){if(!FLASH)return "";const f=FLASH;FLASH="";return `<div class="fb ok"><b>Code changed</b><p>${esc(f)}</p><p class="codebox" style="margin-top:6px">${esc(S.code)}</p></div>`}
+function ownCodeForm(){return `<div class="stack tight"><label for="ownCode"><b>Your own recovery code</b><span class="mg">Kaody famerenana safidinao</span></label>
+ <input id="ownCode" class="input" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="fara-english-2026">
+ <p class="muted" style="font-size:.85rem">Use at least 6 letters or numbers; hyphens are allowed. Add some numbers so nobody can guess it.<span class="mg">Litera na isa 6 farafahakeliny. Ampio isa mba tsy ho fantatry ny hafa.</span></p>
+ <button class="btn primary" data-act="saveowncode">Use this code</button><p id="ownMsg" class="muted" aria-live="polite"></p></div>`}
+async function saveOwnCode(){
+ const code=normCode(document.getElementById("ownCode").value),msg=document.getElementById("ownMsg");
+ if(!CODE_RE.test(code)){msg.textContent="Use 6 to 40 letters, numbers or hyphens, with no spaces or special signs. Example: fara-english-2026.";return}
+ if(code===S.code){msg.textContent="This is already your code.";return}
+ if(!/\d/.test(code)&&code.length<10){msg.textContent=`This is easy to guess. Add some numbers, for example ${code}-2026.`;return}
+ if(!navigator.onLine){msg.textContent="Connect to the internet to change your code.";return}
+ msg.textContent="Saving…";
+ try{
+  const old=S.code,updatedAt=S.updatedAt||Date.now();
+  const r=await fetch(API,{method:"PUT",headers:{"content-type":"application/json"},body:JSON.stringify({code,claim:true,updatedAt,data:Object.assign({},S,{code,codeSaved:true})})});
+  const j=await r.json().catch(()=>null);
+  if(!j){msg.textContent="Online backup works only in the app at miteny-english.netlify.app.";return}
+  if(r.status===409&&j.taken){msg.textContent="Someone already uses this code. Choose another one.";return}
+  if(!r.ok)throw 0;
+  S.code=code;S.codeSaved=true;S.updatedAt=updatedAt;S.syncedAt=Date.now();persistLocal();setSync("ok");
+  fetch(API+"?code="+encodeURIComponent(old),{method:"DELETE"}).catch(()=>{});
+  FLASH="Your recovery code is now the one below. Write it down and keep it safe.";home();
+ }catch(e){msg.textContent="Could not save. Check the internet connection and try again."}
+}
 
 /* ================= LEVEL-UP ================= */
 function levelUpState(){const lv=S.level||1;if(lv>=5)return {none:true,lv};
@@ -810,7 +848,7 @@ function closeSheet(){if(PINRES)return pinDone(false);host.innerHTML=""}
 
 /* ================= HOME ================= */
 function nextLesson(){const lv=S.level||1,start=Math.min(lv,2);return ALL().find(l=>l.level>=start&&l.level<=lv&&!S.lessons[l.id])||null}
-function wordsLearned(){const s=new Set();ALL().forEach(l=>{if(S.lessons[l.id])l.words.forEach(k=>s.add(k))});return s.size}
+function wordsLearned(){const s=new Set();ALL().forEach(l=>{if(S.lessons[l.id])l.words.forEach(k=>s.add(k))});return s.size+Object.keys(S.vocab||{}).length}
 function home(){
  window.scrollTo(0,0);L=null;T=null;
  const brand=`<header class="brand"><b>Miteny <em>English</em></b><button class="iconbtn" data-act="voice">${ICON.spk} Voice</button></header>`;
@@ -839,11 +877,12 @@ function home(){
   outline+="</div>";
  });
  view.innerHTML=brand+`<div class="stack">
-  ${codeCard()}<div class="stats">
+  ${flashBlock()}${codeCard()}<div class="stats">
    <div class="stat"><b>${lv.n}</b><small>${lv.name}</small></div>
    <div class="stat"><b>${streak()}</b><small>Day streak</small></div>
    <div class="stat"><b>${done}</b><small>Lessons done</small></div>
    <div class="stat"><b>${wordsLearned()}</b><small>Words learned</small></div></div>
+  ${dailyCard()}
   ${weak.length?`<div class="stack tight"><p class="kicker">Your focus</p><div class="chips">${weak.map(s=>`<span class="chip">${SEC[s].en}</span>`).join("")}</div></div>`:""}
   ${nx?`<section class="hero"><p class="kicker" style="color:inherit;opacity:.8">Next lesson · ${esc(nx.kind)}</p><h2>${esc(nx.title)}</h2><p>${esc(nx.topic)} · Level ${nx.level}</p><button class="btn" data-act="lesson" data-id="${nx.id}">Start lesson · Atombohy</button></section>`
    :`<section class="hero"><p class="kicker" style="color:inherit;opacity:.8">AI teacher · Mpampianatra AI</p><h2>Ready for a new lesson?</h2><p>The AI teacher writes a fresh Level ${S.level} lesson on a new topic, with your difficult words and weak points in mind.<span class="mg">Hanoratra lesona vaovao ho anao ny mpampianatra AI.</span></p><button class="btn" data-act="ailesson">Create a new lesson</button></section>`}
@@ -1063,7 +1102,7 @@ async function createAiLesson(){
  showLoading(`Writing a new lesson: ${topic}`,"Manoratra lesona vaovao ho anao ny mpampianatra AI.",9000);
  try{
   const raw=await aiCall("lesson",{level:lv,topic,kind,focus:(S.placement&&S.placement.weak||[]).map(k=>SEC[k].en),
-   hardWords:Object.keys(S.hard).map(k=>W[k]&&W[k][0]).filter(Boolean),mistakes:(S.mistakes||[]).slice(0,15),sounds:(S.sounds||[]).slice(0,15),avoid:ALL().map(l=>l.title)},loadingProgress);
+   hardWords:[...Object.keys(S.hard).map(k=>W[k]&&W[k][0]).filter(Boolean),...recentVocab()].slice(0,20),mistakes:(S.mistakes||[]).slice(0,15),sounds:(S.sounds||[]).slice(0,15),avoid:ALL().map(l=>l.title)},loadingProgress);
   const lesson=normalizeAiLesson(raw,lv,topic,kind);
   S.aiLessons=S.aiLessons||[];S.aiLessons.push(lesson);
   // Keep the backup small: drop the oldest finished AI lessons beyond 30.
@@ -1094,6 +1133,128 @@ async function speakingTips(id,btn){
   out.innerHTML=(r.tips||[]).slice(0,3).map(t=>`<div class="tip"><b>${esc(t.word)}</b>: ${esc(t.tip)}<span class="mg">${esc(t.mg)}</span></div>`).join("")+(r.cheer?`<p class="muted">${esc(r.cheer)}</p>`:"");
   btn.remove();
  }catch(e){const m=aiMsg(e);out.innerHTML=`<p class="muted">${esc(m[0])}</p>`;btn.disabled=false;btn.textContent="Ask the teacher how to say the red words"}
+}
+
+/* ================= DAILY WORDS ================= */
+const BOX_DAYS=[0,1,2,4,7,15,30];
+function addDays(d,n){const t=new Date(d+"T12:00:00");t.setDate(t.getDate()+n);return t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0")}
+const vslug=x=>"v_"+String(x||"").toLowerCase().normalize("NFD").replace(/[^a-z0-9]/g,"").slice(0,30);
+function registerVocab(){Object.entries(S.vocab||{}).forEach(([k,v])=>{W[k]=[v.en,v.say,v.mg,v.fr,v.def,(v.ex&&v.ex[0])||""]})}
+function recentVocab(){return Object.values(S.vocab||{}).sort((a,b)=>a.added<b.added?1:-1).slice(0,10).map(v=>v.en)}
+function dueReviewKeys(){const t=today();return Object.keys(S.vocab||{}).filter(k=>{const v=S.vocab[k];return v.box>0&&v.due&&v.due<=t}).sort((a,b)=>S.vocab[a].due<S.vocab[b].due?-1:1)}
+const dailyItems=()=>[...S.daily.review.map(k=>({k,rev:true})),...S.daily.keys.map(k=>({k}))];
+let D={flip:false};
+function dailyCard(){
+ const d=S.daily&&S.daily.date===today()?S.daily:null,bank=Object.keys(S.vocab||{}).length;
+ if(d&&d.phase==="done")return `<section class="panel stack tight daily"><p class="kicker">Daily words · Teny isan'andro</p><h3>Done for today ✓</h3><p class="muted">${d.keys.length} new word${d.keys.length===1?"":"s"}${d.review.length?` and ${d.review.length} reviewed`:""}. Your word bank has ${bank} words. Come back tomorrow for new words.<span class="mg">Vita ho anio. Miverena rahampitso hianatra teny vaovao.</span></p><button class="btn ghost" data-act="dailysummary" style="align-self:flex-start">See today's words</button></section>`;
+ const due=dueReviewKeys().length,n=S.dailyCount||6;
+ return `<section class="panel stack tight daily"><p class="kicker">Daily words · Teny isan'andro</p><h3>${d?"Continue today's words":"Today's new words"}</h3><p class="muted">${d?`${d.keys.length} new words${d.review.length?` + ${d.review.length} to review`:""}`:`${n} new words${due?` + ${Math.min(due,6)} to review`:""}`} · about 10 minutes. Learn them, see examples, then write your own sentences.<span class="mg">Mianara teny vaovao, jereo ny ohatra, dia manorata fehezanteny.</span></p><button class="btn primary" data-act="daily">${d?"Continue":"Start today's words"}</button></section>`;
+}
+function startDaily(){const d=S.daily;D={flip:false};if(d&&d.date===today())return d.phase==="done"?dailySummary():renderDaily();dailyIntro()}
+function dailyIntro(){window.scrollTo(0,0);const n=S.dailyCount||6,due=dueReviewKeys().length;
+ view.innerHTML=`<div class="top"><button class="x" data-act="home" aria-label="Back">${ICON.x}</button></div><div class="stack">
+ <div><p class="kicker">Daily words · Teny isan'andro</p><h1 style="margin-top:6px">Today's words</h1></div>
+ <ol style="margin:0;padding-left:22px;display:flex;flex-direction:column;gap:4px"><li>Learn each word with its meaning and examples.</li><li>Write your own sentence with each new word.</li><li>The teacher checks each sentence. If it is wrong, you see the correct way to write it.</li></ol>
+ <span class="mg" style="margin-top:-8px">Ianaro ny teny tsirairay sy ny ohatra. Manorata fehezanteny. Hamarinin'ny mpampianatra izany ary hasehony ny fomba marina.</span>
+ ${due?`<p class="inst">${Math.min(due,6)} older word${due>1?"s":""} will come back for review first.<span class="mg">Hiverina aloha ny teny efa nianaranao.</span></p>`:""}
+ <div class="stack tight"><p class="kicker">How many new words today?</p><div class="row">${[4,6,8,10].map(x=>`<button class="btn toggle" data-act="dcount" data-n="${x}" aria-pressed="${x===n}">${x} words</button>`).join("")}</div></div>
+ <button class="btn primary" data-act="dstart">Start · Atombohy</button></div>`;
+}
+function localWords(n){const have=new Set(Object.values(S.vocab||{}).map(v=>v.en.toLowerCase()));const out=[];
+ for(const l of LESSONS)for(const k of l.words){const w=W[k];if(!w||have.has(w[0].toLowerCase())||out.length>=n)continue;have.add(w[0].toLowerCase());out.push({en:w[0],say:w[1],pos:"",mg:w[2],fr:w[3],def:w[4],ex:[w[5]]})}
+ return out}
+async function beginDaily(){
+ const n=S.dailyCount||6,lv=S.level||1;
+ // Words left unfinished on an earlier day come back as reviews.
+ Object.values(S.vocab||{}).forEach(v=>{if(!v.box){v.box=1;v.due=today()}});
+ const known=new Set([...Object.values(S.vocab||{}).map(v=>v.en.toLowerCase()),...Object.values(W).map(w=>String(w[0]).toLowerCase())]);
+ let words=[],note="";
+ showLoading("Choosing today's words…","Mifidy ny teny ho anao anio ny mpampianatra AI.",n*430);
+ try{
+  const r=await aiCall("words",{level:lv,count:n+2,theme:TOPICS[Math.floor(Math.random()*TOPICS.length)],hard:Object.keys(S.hard).map(k=>W[k]&&W[k][0]).filter(Boolean),known:[...known].slice(-500)},loadingProgress);
+  (r.words||[]).forEach(w=>{const en=String(w.en||"").trim();if(!en||known.has(en.toLowerCase())||words.length>=n)return;known.add(en.toLowerCase());
+   words.push({en,say:String(w.say||""),pos:String(w.pos||""),mg:String(w.mg||""),fr:String(w.fr||""),def:String(w.def||""),ex:(w.examples||[]).map(String).filter(Boolean).slice(0,3)})});
+  if(!words.length)throw new AIError("default");
+ }catch(e){
+  words=localWords(n);note=aiMsg(e)[0];
+  if(!words.length&&!dueReviewKeys().length)return aiFailed(e);
+ }
+ const keys=[];words.forEach(w=>{let k=vslug(w.en);while(S.vocab[k])k+="x";S.vocab[k]=Object.assign(w,{box:0,due:null,added:today()});keys.push(k)});
+ S.daily={date:today(),keys,review:dueReviewKeys().slice(0,6),i:0,wi:0,phase:"learn",sent:{},started:Date.now(),note};
+ registerVocab();save();D={flip:false};renderDaily();
+}
+function renderDaily(){window.scrollTo(0,0);if(TTS)speechSynthesis.cancel();const d=S.daily;if(d.phase==="learn")return renderCard();if(d.phase==="write")return renderWrite();dailySummary()}
+function dailyTop(frac,label){return `<div class="top"><button class="x" data-act="home" aria-label="Leave daily words">${ICON.x}</button><div class="bar"><i style="width:${pct(frac)}%"></i></div><span class="muted" style="font-size:.85rem;font-variant-numeric:tabular-nums">${label}</span></div>`}
+function exList(v){return `<ul class="exs">${(v.ex||[]).map((x,i)=>`<li><button class="say" data-act="dsayex" data-i="${i}" aria-label="Listen to this example">${ICON.spk}</button><span>${esc(x)}</span></li>`).join("")}</ul>`}
+function renderCard(){
+ const d=S.daily,its=dailyItems(),it=its[d.i];
+ if(!it){d.phase=d.keys.length?"write":"done";d.wi=0;save();return d.phase==="done"?finishDaily():renderDaily()}
+ const v=S.vocab[it.k];
+ view.innerHTML=dailyTop(d.i/its.length,`${d.i+1}/${its.length}`)+`<div class="stack">
+  ${d.note&&d.i===0?`<p class="inst">${esc(d.note)} Today's words come from your lessons instead.</p>`:""}
+  <p class="kicker">${it.rev?"Review · Famerenana":"New word · Teny vaovao"}</p>
+  <section class="fcard"><div class="head"><div><span class="fword">${esc(v.en)}</span>${v.pos?`<span class="pos">${esc(v.pos)}</span>`:""}</div><button class="say" data-act="dsay" aria-label="Listen">${ICON.spk}</button></div>
+   <span class="say-as">${esc(v.say)}</span>
+   ${D.flip?`<dl class="trans"><dt>MG</dt><dd><b>${esc(v.mg)}</b></dd><dt>FR</dt><dd>${esc(v.fr)}</dd><dt>EN</dt><dd>${esc(v.def)}</dd></dl><p class="kicker">Examples · Ohatra</p>${exList(v)}`:""}
+  </section>
+  ${!D.flip?`<p class="muted" style="text-align:center">${it.rev?"Do you remember what it means? Think first, then check.":"Say the word aloud, then see what it means."}<span class="mg">${it.rev?"Mbola tadidinao ve ny dikany? Eritrereto aloha.":"Tenony mafy ny teny, avy eo jereo ny dikany."}</span></p><button class="btn primary" data-act="dflip">Show meaning · Asehoy ny dikany</button>`
+   :it.rev?`<div class="row" style="flex-wrap:nowrap"><button class="btn" data-act="drate" data-v="0" style="flex:1;min-height:54px">I forgot</button><button class="btn primary" data-act="drate" data-v="1" style="flex:1">I remembered</button></div>`
+   :`<button class="btn primary" data-act="dnext">${d.i===its.length-1?"Now write sentences · Manorata":"Next word · Teny manaraka"}</button>`}
+ </div>`;
+ if(!D.flip)say(v.en);
+}
+function curCardKey(){return dailyItems()[S.daily.i].k}
+function rateCard(ok){const d=S.daily,k=curCardKey(),v=S.vocab[k];
+ if(ok){v.box=Math.min(6,(v.box||1)+1);v.due=addDays(today(),BOX_DAYS[v.box])}else{v.box=1;v.due=addDays(today(),1);S.hard[k]=0}
+ d.i++;D.flip=false;save();renderCard()}
+function sentResult(st){const r=st.res;
+ if(r.local)return `<div class="fb no"><b>Not checked</b><p>${esc(r.msg)} Compare your sentence with the examples.</p></div>`;
+ if(r.correct)return `<div class="fb ok"><b>Correct! · Marina!</b><p>${esc(r.why)}<span class="mg">${esc(r.mg)}</span></p>${r.better?`<p style="margin-top:6px"><b style="font-size:1rem">A more natural way:</b> ${esc(r.better)}</p>`:""}</div>`;
+ return `<div class="fb no"><b>Not quite · Tsy dia marina</b><p>${esc(r.why)}<span class="mg">${esc(r.mg)}</span></p></div>
+  <div class="stack tight" style="margin-top:12px"><p class="kicker">The correct way · Ny fomba marina</p><div class="row" style="flex-wrap:nowrap;align-items:flex-start"><p class="corr" style="flex:1;min-width:0">${esc(r.corrected)}</p><button class="say" data-act="dsaycorr" aria-label="Listen to the correct sentence">${ICON.spk}</button></div></div>`}
+function renderWrite(){
+ const d=S.daily,n=d.keys.length,k=d.keys[d.wi||0];if(!k)return finishDaily();
+ const v=S.vocab[k],st=d.sent[k]||{},last=d.wi===n-1,canRetry=st.res&&!st.res.correct&&!st.res.local&&(st.tries||0)<3;
+ let btns;
+ if(!st.res)btns=`<button class="btn primary" data-act="dcheck">Check my sentence · Hamarino</button><button class="link" data-act="dskip" style="align-self:center">Skip this word</button>`;
+ else if(canRetry)btns=`<button class="btn primary" data-act="dtry">Try again · Andramo indray</button><button class="link" data-act="dwnext" style="align-self:center">${last?"Finish":"Next word"}</button>`;
+ else btns=`<button class="btn primary" data-act="dwnext">${last?"Finish · Vita":"Next word · Teny manaraka"}</button>`;
+ view.innerHTML=dailyTop(d.wi/n,`${d.wi+1}/${n}`)+`<div class="stack">
+  <div><p class="kicker">Make a sentence · Manaova fehezanteny</p><h2>Write your own sentence with “${esc(v.en)}”</h2><span class="mg">Manorata fehezanteny misy ny teny “${esc(v.en)}” (${esc(v.mg)}).</span></div>
+  <details class="panel"><summary class="muted" style="cursor:pointer;font-weight:700">See the meaning and examples again</summary><div class="stack tight" style="margin-top:10px"><p>${esc(v.def)}</p>${exList(v)}</div></details>
+  <label for="sentBox" class="muted" style="font-size:.9rem">Your sentence${st.tries?` · try ${Math.min(st.tries+(st.res?0:1),3)} of 3`:""}</label>
+  <textarea id="sentBox" class="textarea" style="min-height:96px" placeholder="Write one sentence about your life…" ${st.res?"readonly":""}>${esc(st.text||"")}</textarea>
+  <div id="sentRes" class="stack tight" aria-live="polite">${st.res?sentResult(st):""}</div>
+  ${btns}</div>`;
+}
+async function checkSentence(){
+ const d=S.daily,k=d.keys[d.wi],v=S.vocab[k],st=d.sent[k]=d.sent[k]||{tries:0};
+ const box=document.getElementById("sentBox"),text=box.value.trim(),res=document.getElementById("sentRes");st.text=box.value;
+ if(text.split(/\s+/).length<3){res.innerHTML=`<p class="muted">Write a full sentence (at least 3 words).<span class="mg">Manorata fehezanteny feno (teny 3 farafahakeliny).</span></p>`;return}
+ const flat=x=>String(x).toLowerCase().replace(/[^a-z0-9 ]/g,"").replace(/\s+/g," ").trim();
+ if((v.ex||[]).some(x=>flat(x)===flat(text))){res.innerHTML=`<p class="muted">That is one of the examples. Write your own sentence, for example about your work or your family.<span class="mg">Ohatra iray io. Manorata fehezanteny anao manokana.</span></p>`;return}
+ const btn=view.querySelector('[data-act="dcheck"]');btn.disabled=true;btn.textContent="The teacher is checking…";
+ try{
+  const r=await aiCall("sentence",{level:S.level||1,word:v.en,def:v.def,sentence:text});
+  st.tries=(st.tries||0)+1;st.res={correct:!!r.correct,corrected:String(r.corrected||""),why:String(r.why||""),mg:String(r.mg||""),better:String(r.better||"")};
+  if(st.res.correct)st.ok=true;else if(st.res.corrected)S.mistakes=[`${text} → ${st.res.corrected}`,...(S.mistakes||[])].slice(0,20);
+  save();renderWrite();
+ }catch(e){
+  if(e.code==="need-pin"){const m=aiMsg(e);res.innerHTML=`<p class="muted">${esc(m[0])}<span class="mg">${esc(m[1])}</span></p>`;btn.disabled=false;btn.textContent="Check my sentence · Hamarino";return}
+  st.tries=(st.tries||0)+1;st.res={local:true,msg:aiMsg(e)[0]};save();renderWrite();
+ }
+}
+function finishDaily(){const d=S.daily;
+ d.keys.forEach(k=>{const v=S.vocab[k],st=d.sent[k]||{};if(!v.box){v.box=1;v.due=addDays(today(),1)}if(!st.ok&&!(st.res&&st.res.local))S.hard[k]=S.hard[k]||0});
+ d.phase="done";d.finished=d.finished||Date.now();markDay();save();dailySummary();
+}
+function dailySummary(){const d=S.daily;window.scrollTo(0,0);
+ const checked=d.keys.filter(k=>d.sent[k]&&d.sent[k].res&&!d.sent[k].res.local),good=checked.filter(k=>d.sent[k].ok).length;
+ const mins=Math.max(1,Math.round(((d.finished||Date.now())-d.started)/60000));
+ view.innerHTML=`<div class="stack" style="text-align:center;align-items:center;padding-top:12px"><p class="kicker">Daily words · Vita!</p><span class="score-ring">${d.keys.length}</span><h2>new words today</h2><p class="muted">${checked.length?`${good} of ${checked.length} sentences correct · `:""}${d.review.length?`${d.review.length} reviewed · `:""}${mins} min</p></div>
+ <div class="stack" style="margin-top:18px"><section class="panel stack tight"><h3>Today's words</h3>${d.keys.map(k=>{const v=S.vocab[k],st=d.sent[k]||{},line=st.ok?st.text:(st.res&&st.res.corrected)||"";return `<div class="wrow"><button class="say" data-act="sayvocab" data-k="${k}" aria-label="Listen">${ICON.spk}</button><div style="min-width:0"><b>${esc(v.en)}</b> · ${esc(v.mg)}${line?`<span class="mg" style="font-style:normal">“${esc(line.trim())}”</span>`:""}</div></div>`}).join("")}</section>
+ <p class="muted" style="font-size:.9rem">These words come back for review after 1, 2, 4, 7, 15 and 30 days, so they stay in your memory. Words with wrong sentences also go to your difficult words.<span class="mg">Hiverina ireo teny ireo mba tsy hohadinoina.</span></p>
+ <button class="btn primary" data-act="home">Back to my course</button></div>`;
 }
 
 /* ================= REVIEW ================= */
@@ -1148,6 +1309,23 @@ document.addEventListener("click",e=>{
   case "copycode":{const done=()=>{b.textContent="Copied";setTimeout(()=>{b.textContent=b.dataset.label||"Copy"},1500)};b.dataset.label=b.dataset.label||b.textContent;
    try{navigator.clipboard.writeText(S.code).then(done).catch(()=>selectCode())}catch(x){selectCode()}break}
   case "codesaved":S.codeSaved=true;save();home();break;
+  case "owncode":{const box=document.getElementById(b.dataset.box||"restoreBox");box.innerHTML=ownCodeForm();box.querySelector("input").focus();break}
+  case "saveowncode":saveOwnCode();break;
+  case "daily":startDaily();break;
+  case "dcount":S.dailyCount=+b.dataset.n;save();dailyIntro();break;
+  case "dstart":beginDaily();break;
+  case "dflip":D.flip=true;renderCard();break;
+  case "dnext":S.daily.i++;D.flip=false;save();renderCard();break;
+  case "drate":rateCard(b.dataset.v==="1");break;
+  case "dsay":say(S.vocab[curCardKey()].en);break;
+  case "dsayex":{const d=S.daily,k=d.phase==="write"?d.keys[d.wi]:curCardKey();say(S.vocab[k].ex[+b.dataset.i]);break}
+  case "dsaycorr":{const d=S.daily,st=d.sent[d.keys[d.wi]];if(st&&st.res)say(st.res.corrected);break}
+  case "dcheck":checkSentence();break;
+  case "dtry":{const d=S.daily,st=d.sent[d.keys[d.wi]];st.res=null;save();renderWrite();const t=document.getElementById("sentBox");if(t){t.focus();t.setSelectionRange(t.value.length,t.value.length)}break}
+  case "dskip":{const d=S.daily,k=d.keys[d.wi];d.sent[k]=Object.assign(d.sent[k]||{},{skipped:true});d.wi++;save();renderWrite();break}
+  case "dwnext":S.daily.wi++;save();renderWrite();break;
+  case "dailysummary":dailySummary();break;
+  case "sayvocab":say(S.vocab[b.dataset.k].en);break;
   case "showrestore":{const box=document.getElementById("restoreBox");box.innerHTML=restoreForm();box.querySelector("input").focus();break}
   case "dorestore":doRestore();break;
   case "levelup":startLevelUp();break;
@@ -1166,9 +1344,10 @@ document.addEventListener("click",e=>{
 });
 document.addEventListener("input",e=>{
  if(e.target.id==="pitch"||e.target.id==="rate"){const v=+e.target.value;S[e.target.id]=v;const lab=document.getElementById(e.target.id+"V");if(lab)lab.textContent=v.toFixed(2);save()}
- if(e.target.id==="writeBox"&&L)L.writeText=e.target.value});
+ if(e.target.id==="writeBox"&&L)L.writeText=e.target.value;
+ if(e.target.id==="sentBox"&&S.daily){const k=S.daily.keys[S.daily.wi];if(k){S.daily.sent[k]=Object.assign(S.daily.sent[k]||{tries:0},{text:e.target.value});persistLocal()}}});
 document.addEventListener("change",e=>{if(e.target.id==="pitch"||e.target.id==="rate")say(SAMPLE,false)});
-document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet();if(e.key==="Enter"&&e.target.id==="restoreCode")doRestore();if(e.key==="Enter"&&e.target.id==="pinBox")pinDone(true)});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet();if(e.key==="Enter"&&e.target.id==="restoreCode")doRestore();if(e.key==="Enter"&&e.target.id==="pinBox")pinDone(true);if(e.key==="Enter"&&e.target.id==="ownCode")saveOwnCode()});
 function selectCode(){const el=document.querySelector(".codebox");if(!el)return;const r=document.createRange();r.selectNodeContents(el);const sel=getSelection();sel.removeAllRanges();sel.addRange(r)}
 home();
 pullOnStart();

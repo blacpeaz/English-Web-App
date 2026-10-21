@@ -8,7 +8,7 @@
 //   AI_FAST_MODEL      optional, default claude-haiku-5-5  (quick speaking tips)
 //   APP_PIN            required; the AI only answers requests that carry this PIN (checked in /api/usage)
 
-const CODE_RE = /^[a-z]+-[a-z]+-[a-z]+-\d{4}$/;
+const CODE_RE = /^[a-z0-9][a-z0-9-]{5,39}$/;
 const CEFR = { 1: "A1 (beginner)", 2: "A2 (elementary)", 3: "B1 (intermediate)", 4: "B2 (upper-intermediate)", 5: "C1 (advanced)" };
 const TEXT_LEN = { 1: "80-120", 2: "120-180", 3: "180-250", 4: "250-330", 5: "330-420" };
 
@@ -83,6 +83,25 @@ const SCHEMAS = {
       tips: { type: "array", items: { type: "object", required: ["word", "tip", "mg"], properties: { word: S, tip: S, mg: S } } },
       cheer: S,
     },
+  },
+  words: {
+    type: "object",
+    required: ["words"],
+    properties: {
+      words: {
+        type: "array",
+        items: {
+          type: "object",
+          required: ["en", "say", "pos", "mg", "fr", "def", "examples"],
+          properties: { en: S, say: S, pos: S, mg: S, fr: S, def: S, examples: { type: "array", items: S } },
+        },
+      },
+    },
+  },
+  sentence: {
+    type: "object",
+    required: ["correct", "uses_word", "corrected", "why", "mg", "better"],
+    properties: { correct: { type: "boolean" }, uses_word: { type: "boolean" }, corrected: S, why: S, mg: S, better: S },
   },
   levelup: {
     type: "object",
@@ -170,6 +189,37 @@ function build(task, p) {
       user: JSON.stringify({ sentence: str(p.sentence, 240), heard: str(p.heard, 240), missed_words: list(p.missed, 15, 30) }),
     };
   }
+  if (task === "words") {
+    const lv = level(p.level);
+    const n = Math.min(14, Math.max(3, parseInt(p.count, 10) || 8));
+    return {
+      system:
+        `You choose vocabulary for the Miteny English app. ${LEARNER}\n` +
+        `Give ${n} useful English words or short phrases to learn today, right for CEFR ${CEFR[lv]} (app level ${lv} of 5). ` +
+        `Mix everyday words, work words and, from level 3 up, words for opinions, news and ideas; from level 4 up include some phrasal verbs, collocations and idioms. ` +
+        `Lean towards the theme of the day but do not use only theme words. Never give a word from the "already_known" list. ` +
+        `For each: en = the word or phrase; say = an easy sound guide with the stressed part in CAPITALS (no IPA), with a short note in brackets for silent letters or irregular forms; ` +
+        `pos = part of speech (noun, verb, adjective, adverb, phrase, phrasal verb, idiom); mg = correct, natural standard Malagasy (if there is no direct word, a short Malagasy explanation); ` +
+        `fr = French; def = a simple English definition; examples = exactly 3 different natural sentences that show how the word is used, each short and right for the level, at least one about daily life in Madagascar.`,
+      user: JSON.stringify({ level: lv, count: n, theme: str(p.theme, 60), difficult_words_to_avoid_repeating: list(p.hard, 30, 40), already_known: list(p.known, 500, 40) }),
+    };
+  }
+  if (task === "sentence") {
+    const lv = level(p.level);
+    return {
+      system:
+        `You are a kind, precise English teacher. ${LEARNER}\n` +
+        `The learner wrote ONE sentence to practise a new word. Judge it for app level ${lv} of 5 (CEFR ${CEFR[lv]}). Return JSON matching the schema:\n` +
+        `- uses_word: true if the sentence uses the target word (any correct form, e.g. bought for buy) with the right meaning.\n` +
+        `- correct: true only if the sentence is grammatically correct, makes sense, and uses the word correctly. Small capital-letter or full-stop slips alone do not make it wrong.\n` +
+        `- corrected: the correct way to write their sentence, with the smallest changes that keep their idea. If it was already correct, repeat it (fixing only capitals or punctuation). If it does not use the word, rewrite their idea so it uses the word correctly.\n` +
+        `- why: in simple English, what was wrong and why (one or two short sentences), or what was good if it is correct.\n` +
+        `- mg: the same explanation in short, natural Malagasy.\n` +
+        `- better: if correct but there is a more natural way a native speaker would say it, give it; otherwise an empty string.\n` +
+        `If the text is empty or not English, set correct and uses_word to false and write a simple example sentence with the word in "corrected".`,
+      user: JSON.stringify({ word: str(p.word, 60), meaning: str(p.def, 200), learner_sentence: str(p.sentence, 400) }),
+    };
+  }
   if (task === "levelup") {
     const lv = Math.min(4, level(p.level));
     return {
@@ -185,7 +235,15 @@ function build(task, p) {
   return null;
 }
 
-const LIMITS = { lesson: { fast: false, max: 8000 }, writing: { fast: false, max: 2000 }, speaking: { fast: true, max: 700 }, levelup: { fast: false, max: 3500 } };
+// "light" tasks are small and cheap; they have their own daily allowance (see usage.mjs).
+const LIMITS = {
+  lesson: { fast: false, max: 8000 },
+  writing: { fast: false, max: 2000 },
+  speaking: { fast: true, max: 700, light: true },
+  levelup: { fast: false, max: 3500 },
+  words: { fast: false, max: 4500 },
+  sentence: { fast: false, max: 700, light: true },
+};
 
 export default async (req, context) => {
   const key = Netlify.env.get("ANTHROPIC_API_KEY");
@@ -194,7 +252,7 @@ export default async (req, context) => {
   let body;
   try {
     const text = await req.text();
-    if (text.length > 16000) return json({ error: "too-large" }, 413);
+    if (text.length > 40000) return json({ error: "too-large" }, 413);
     body = JSON.parse(text);
   } catch {
     return json({ error: "bad-json" }, 400);
@@ -210,7 +268,7 @@ export default async (req, context) => {
     const u = await fetch(new URL("/api/usage", req.url), {
       method: "POST",
       headers: { "content-type": "application/json", "x-app-pin": str(req.headers.get("x-app-pin"), 64) },
-      body: JSON.stringify({ code, ip: context?.ip || "" }),
+      body: JSON.stringify({ code, ip: context?.ip || "", kind: spec.light ? "light" : "main" }),
     });
     const uj = await u.json();
     if (!uj.ok) return json({ error: uj.reason || "limit" }, uj.reason === "bad-pin" ? 401 : 429);

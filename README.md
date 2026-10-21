@@ -15,6 +15,9 @@ A mobile web app that teaches English to a Malagasy speaker, from beginner to ad
 - **AI teacher** (Claude): writes new lessons on demand for any level (1–5), mixing topics and targeting the learner's difficult words, writing mistakes and hard sounds; corrects writing with explanations in English and Malagasy; gives pronunciation tips for missed words; writes level-up tests for Levels 3–4. Lessons it writes are saved on the phone and backed up.
 - **Voice settings**: choose any English voice on the phone, plus voice height (pitch) and speed.
 
+- **Daily words**: each day the AI teacher picks 4–10 new words for the learner's level (Malagasy, French, sound guide, 3 examples). The learner studies them as flashcards, then writes their own sentence with each word and taps **Check**; if it is wrong, the app shows the correct way to write it with an explanation in English and Malagasy (up to 3 tries per word). Learned words come back for review after 1, 2, 4, 7, 15 and 30 days. Works without AI too, using words from the lessons.
+- **Own recovery code**: the learner can replace the random code with one they choose (6–40 letters, numbers or hyphens). The app refuses codes someone else already uses. One network can try at most 30 unknown codes a day, so codes cannot be guessed by trying many.
+
 ## Setup (Netlify environment variables)
 
 | Variable | Needed | What it does |
@@ -25,6 +28,8 @@ A mobile web app that teaches English to a Malagasy speaker, from beginner to ad
 | `AI_FAST_MODEL` | no | Default `claude-haiku-5-5` (speaking tips) |
 | `AI_DAILY_LIMIT` | no | AI uses per learner per day (default 25) |
 | `AI_GLOBAL_DAILY_LIMIT` | no | AI uses for the whole app per day (default 30) |
+| `AI_LIGHT_DAILY_LIMIT` | no | Small checks (one sentence, speaking tips) per learner per day (default 60) |
+| `AI_LIGHT_GLOBAL_DAILY_LIMIT` | no | Small checks for the whole app per day (default 100) |
 
 ## Files
 

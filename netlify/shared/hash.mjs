@@ -1,4 +1,5 @@
-export const CODE_RE = /^[a-z]+-[a-z]+-[a-z]+-\d{4}$/;
+// Recovery codes: 6-40 lowercase letters, numbers or hyphens (random ones like mango-river-lemur-4821, or one the learner chooses).
+export const CODE_RE = /^[a-z0-9][a-z0-9-]{5,39}$/;
 
 // The recovery code is never stored as-is: storage keys use a SHA-256 hash of it.
 export async function keyFor(code) {
