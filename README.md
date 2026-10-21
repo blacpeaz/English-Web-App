@@ -20,6 +20,14 @@ A mobile web app that teaches English to a Malagasy speaker, from beginner to ad
 
 - **Money & English**: a 20-lesson course that teaches personal finance through English lessons (reading, words, questions, speaking, writing). Ideas from The Richest Man in Babylon, The Psychology of Money, Rich Dad Poor Dad, Think and Grow Rich, The Millionaire Next Door and The Total Money Makeover, explained in new words with examples in ariary from daily life in Madagascar. Each lesson ends with a money takeaway and a small action for the week.
 
+- **Grammar path**: 12 grammar topics per level (60 in all, based on the CEFR levels A1 to C1). Each topic: explanation in English and Malagasy, rules, examples, common mistakes, 10 exercises (choice, fill the gap, correct the mistake) and two own sentences checked by the AI. 70% = mastered. The next topic is also woven into new lessons.
+- **Speaking**: answer questions aloud (speech-to-text) and get exam-style feedback (answer, grammar, vocabulary, fluency), the corrected answer, a stronger model answer and a follow-up question; role-plays per level (market, complaints, job interviews, negotiations, presenting to a director) with a correction after every reply.
+- **Listening**: scripts with 1-3 voices, questions read first, text hidden while listening, gist/detail/inference/attitude questions by level, transcript afterwards, then a 3-sentence dictation checked word by word. Faster speech at higher levels.
+- **Professional writing**: 32 real tasks from messages to business proposals, marked on task, organisation, grammar, vocabulary and tone, with every correction, a model answer and tips; rewrite and resubmit.
+- **Harder lessons per level**: longer texts at Levels 4-5 (up to 650 words), question types that grow from facts to inference, tone, purpose and register; **news lessons** at Level 3+ built from this week's real news (Claude web search).
+- **Level-up rules (Level 3+)**: 4 reading lessons (70%+), 10 of 12 grammar topics, 4 speaking sessions, 3 listening and 3 writing tasks (60%+). Level 5 ends with a 15-question **final Professional English test**.
+- **Talk at work**: a daily question to discuss in English with the manager.
+
 ## Setup (Netlify environment variables)
 
 | Variable | Needed | What it does |
@@ -32,12 +40,13 @@ A mobile web app that teaches English to a Malagasy speaker, from beginner to ad
 | `AI_GLOBAL_DAILY_LIMIT` | no | AI uses for the whole app per day (default 30) |
 | `GEMINI_API_KEY` | no | Free Google Gemini key (aistudio.google.com). When set, daily words, sentence checks and speaking tips use Gemini first and fall back to Claude if it fails |
 | `GEMINI_MODEL` | no | Default `gemini-3.8-flash` |
-| `AI_LIGHT_DAILY_LIMIT` | no | Small checks (one sentence, speaking tips) per learner per day (default 60) |
-| `AI_LIGHT_GLOBAL_DAILY_LIMIT` | no | Small checks for the whole app per day (default 100) |
+| `AI_LIGHT_DAILY_LIMIT` | no | Small jobs (sentences, speaking feedback, role-play turns, daily words) per learner per day (default 120) |
+| `AI_LIGHT_GLOBAL_DAILY_LIMIT` | no | Small jobs for the whole app per day (default 150) |
 
 ## Files
 
-- `index.html` — the whole app (HTML, CSS and JavaScript in one file)
+- `index.html` — the app (HTML, CSS and the main JavaScript)
+- `skills.js` — grammar path, speaking, role-plays, listening, writing, level-up checklist
 - `manifest.webmanifest`, `icon.svg` — lets the app be added to the phone's home screen
 - `netlify/functions/progress.mjs` — online backup API at `/api/progress`
 - `netlify/edge-functions/ai.js` — AI teacher at `/api/ai` (streams Claude's answer; edge functions allow longer answers than normal functions)

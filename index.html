@@ -216,6 +216,28 @@ details.panel summary{list-style-position:inside}
 .moneybox .kicker{color:var(--ink)}
 .src{font-size:.85rem;color:var(--muted)}
 .money{border-color:var(--gold)}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{display:flex;flex-direction:column;gap:3px;text-align:left;background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r);padding:14px;min-height:118px;min-width:0}
+.tile b{font:600 1.15rem/1.2 var(--display)}
+.tile .tline{font-size:.9rem;font-weight:700;color:var(--green);margin-top:4px;overflow-wrap:anywhere}
+.tile small{color:var(--muted);font-size:.78rem;margin-top:auto}
+.rub{display:grid;grid-template-columns:auto 1fr auto;gap:8px 10px;align-items:center;font-size:.92rem}
+.rub .meter{height:10px}.rub .meter i.low{background:var(--red)}
+.rule{display:flex;flex-direction:column;gap:2px;border-left:3px solid var(--green);padding-left:10px}
+.rule span{color:var(--muted);font-style:italic}
+.chat{display:flex;flex-direction:column;gap:8px}
+.bubble{display:flex;gap:8px;align-items:flex-start;max-width:88%;padding:10px 12px;border-radius:14px;font-size:1rem}
+.bubble span{min-width:0}
+.bubble.ai{background:var(--surface);border:1.5px solid var(--line);align-self:flex-start;border-bottom-left-radius:4px}
+.bubble.me{background:var(--green-soft);align-self:flex-end;border-bottom-right-radius:4px}
+.bubble .say{width:32px;height:32px;flex:none}
+.bfix{align-self:flex-end;max-width:88%;font-size:.88rem;background:var(--gold-soft);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:2px}
+.checks{display:flex;flex-direction:column;gap:6px}
+.chk{display:grid;grid-template-columns:auto 1fr auto;gap:8px;font-size:.92rem;align-items:center}
+.chk>span:first-child{color:var(--muted);font-weight:700}
+.chk.ok>span:first-child{color:var(--green)}
+.chk b{font-variant-numeric:tabular-nums}
+.cert{background:var(--green);color:var(--bg);border-radius:var(--r);padding:16px 18px;display:flex;flex-direction:column;gap:4px}
 .confirm{background:var(--red-soft);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
 </style>
 </head>
@@ -224,6 +246,7 @@ details.panel summary{list-style-position:inside}
 <div class="app"><main id="view"></main></div>
 <div id="sheetHost"></div>
 
+<script src="skills.js"></script>
 <script>
 /* ================= CONTENT ================= */
 const LEVELS=[
@@ -633,7 +656,7 @@ const CODE_WORDS="mango river lemur rice sun moon star cloud rain tree leaf ston
 const CODE_RE=/^[a-z0-9][a-z0-9-]{5,39}$/;
 function normCode(x){return String(x||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim().toLowerCase().replace(/\s+/g,"-")}
 function makeCode(){const r=new Uint32Array(4);crypto.getRandomValues(r);return [0,1,2].map(i=>CODE_WORDS[r[i]%CODE_WORDS.length]).join("-")+"-"+String(r[3]%10000).padStart(4,"0")}
-function fresh(){return {qSeen:[],placement:null,history:[],level:null,lessons:{},hard:{},seen:{},days:[],slow:false,levelUps:[],code:makeCode(),codeSaved:false,updatedAt:0,syncedAt:0,aiLessons:[],mistakes:[],sounds:[],writing:{},voiceURI:null,pitch:1.15,rate:0.92,vocab:{},daily:null,dailyCount:6,money:{}}}
+function fresh(){return {qSeen:[],placement:null,history:[],level:null,lessons:{},hard:{},seen:{},days:[],slow:false,levelUps:[],code:makeCode(),codeSaved:false,updatedAt:0,syncedAt:0,aiLessons:[],mistakes:[],sounds:[],writing:{},voiceURI:null,pitch:1.15,rate:0.92,vocab:{},daily:null,dailyCount:6,money:{},sk:{},grammar:{},gcache:{},talks:[],wdrafts:{},certified:null}}
 let S;
 try{S=Object.assign(fresh(),JSON.parse(localStorage.getItem(KEY)||"null")||{})}catch(e){S=fresh()}
 if(!S.code||!CODE_RE.test(S.code))S.code=makeCode();
@@ -735,12 +758,16 @@ async function saveOwnCode(){
 }
 
 /* ================= LEVEL-UP ================= */
-function levelUpState(){const lv=S.level||1;if(lv>=5)return {none:true,lv};
+function levelUpState(){const lv=S.level||1;if(lv>=5&&S.certified)return {none:true,lv};
+ if(lv>=3&&typeof levelChecklist==="function"){const c=levelChecklist(lv);return {lv,ai:true,check:c,ready:c.ready,final:lv>=5}}
  const atLv=ALL().filter(l=>l.level===lv),doneAll=atLv.filter(l=>S.lessons[l.id]);
  if(!LEVEL_TESTS[lv]){const need=4,avg=doneAll.length?doneAll.reduce((a,l)=>a+S.lessons[l.id].q,0)/doneAll.length:0;return {lv,total:need,done:Math.min(doneAll.length,need),avg:Math.round(avg),ready:doneAll.length>=need&&avg>=70,ai:true}}
  const ls=LESSONS.filter(l=>l.level===lv),done=ls.filter(l=>S.lessons[l.id]);
  const avg=done.length?done.reduce((a,l)=>a+S.lessons[l.id].q,0)/done.length:0;return {lv,total:ls.length,done:done.length,avg:Math.round(avg),ready:done.length===ls.length&&avg>=70}}
 function levelUpCard(){const st=levelUpState();if(st.none)return "";
+ if(st.check){const nq=st.final?15:12,need=Math.ceil(nq*0.75);
+  if(st.ready)return `<section class="panel stack tight" style="border-color:var(--gold)"><p class="kicker">${st.final?"Final test unlocked":"Level-up test unlocked"}</p><h3>${st.final?"Ready for the Professional English test?":`Ready for Level ${st.lv+1}?`}</h3><p class="muted">${nq} questions on reading, grammar, vocabulary and listening. Score ${need} or more to pass.<span class="mg">Fanontaniana ${nq}. Mila ${need} farafahakeliny.</span></p><button class="btn primary" data-act="levelup">${st.final?"Take the final test":"Take the level-up test"}</button></section>`;
+  return `<section class="panel stack tight"><h3>${st.final?"Final test: Professional English":`Level-up test for Level ${st.lv+1}`}</h3><p class="muted" style="font-size:.9rem">Complete all five to unlock it.<span class="mg">Vitao ireo dimy ireo vao misokatra ny fitsapana.</span></p>${checklistHTML(st.check)}</section>`}
  if(st.ready)return `<section class="panel stack tight" style="border-color:var(--gold)"><p class="kicker">Level-up test unlocked</p><h3>Ready for Level ${st.lv+1}?</h3>
   <p class="muted">10 questions. Score 8 or more to move up.<span class="mg">Fanontaniana 10. Mila 8 farafahakeliny vao miakatra ambaratonga.</span></p><button class="btn primary" data-act="levelup">Take the level-up test</button></section>`;
  return `<section class="panel stack tight"><div class="row" style="justify-content:space-between"><h3>Level-up test</h3><span class="muted" style="font-size:.85rem;font-variant-numeric:tabular-nums">${st.done}/${st.total} lessons</span></div><div class="meter"><i style="width:${pct(st.done/st.total)}%"></i></div>
@@ -748,19 +775,19 @@ function levelUpCard(){const st=levelUpState();if(st.none)return "";
 function startLevelUp(){const lv=S.level||1;
  if(LEVEL_TESTS[lv]){const items=shuffle(buildLevelTest(lv));remember(items);T={items,kind:"levelup",level:lv,i:0,ans:[],spk:{}};renderTest();return}
  showLoading("Preparing your level-up test…","Ny mpampianatra AI dia manomana ny fitsapana.",4500);
- aiCall("levelup",{level:lv,hardWords:Object.keys(S.hard).map(k=>W[k]&&W[k][0]).filter(Boolean)},loadingProgress).then(r=>{
-  const items=(r.items||[]).filter(it=>["vocab","grammar","read","listen"].includes(it.s)&&Array.isArray(it.o)&&it.o.length>=2&&Number.isInteger(it.a)&&it.a>=0&&it.a<it.o.length&&it.q&&(it.s!=="read"||it.p)&&(it.s!=="listen"||it.audio)).slice(0,10);
-  if(items.length<8)throw new AIError("bad-output");
+ aiCall("levelup",{level:lv,grammar:typeof GRAMMAR!=="undefined"?GRAMMAR[lv].map(g=>g[0]):[],hardWords:Object.keys(S.hard).map(k=>W[k]&&W[k][0]).filter(Boolean)},loadingProgress).then(r=>{
+  const items=(r.items||[]).filter(it=>["vocab","grammar","read","listen"].includes(it.s)&&Array.isArray(it.o)&&it.o.length>=2&&Number.isInteger(it.a)&&it.a>=0&&it.a<it.o.length&&it.q&&(it.s!=="read"||it.p)&&(it.s!=="listen"||it.audio)).slice(0,lv>=5?15:12);
+  if(items.length<9)throw new AIError("bad-output");
   T={items,kind:"levelup",level:lv,i:0,ans:[],spk:{}};renderTest();
  }).catch(e=>aiFailed(e));
 }
 function finishLevelUp(){
- const n=T.items.length,c=T.ans.filter(Boolean).length,pass=c>=Math.ceil(n*0.75),from=T.level;
- S.levelUps=S.levelUps||[];S.levelUps.push({date:today(),from,score:c,of:n,pass});if(pass&&S.level===from)S.level=from+1;markDay();save();
+ const n=T.items.length,c=T.ans.filter(Boolean).length,need=Math.ceil(n*0.75),pass=c>=need,from=T.level,final=from>=5;
+ S.levelUps=S.levelUps||[];S.levelUps.push({date:today(),from,score:c,of:n,pass});if(pass&&final)S.certified={date:today(),score:c,of:n};else if(pass&&S.level===from)S.level=from+1;markDay();save();
  const wrong=T.items.map((it,i)=>({it,ok:T.ans[i]})).filter(x=>!x.ok);window.scrollTo(0,0);
- view.innerHTML=`<div class="stack" style="text-align:center;align-items:center;padding-top:12px"><p class="kicker">Level-up test · Level ${from}</p><span class="score-ring">${c}/${n}</span>
-  <h2>${pass?`Congratulations! You are now Level ${from+1}.`:"Not yet. You need 8 to move up."}</h2>
-  <p class="muted">${pass?`${LEVELS[from].name}<span class="mg">${LEVELS[from].mg}</span>`:"Repeat a lesson or practise your difficult words, then try again.<span class='mg'>Avereno ny lesona iray, dia andramo indray.</span>"}</p></div>
+ view.innerHTML=`<div class="stack" style="text-align:center;align-items:center;padding-top:12px"><p class="kicker">${final?"Final professional test":`Level-up test · Level ${from}`}</p><span class="score-ring">${c}/${n}</span>
+  <h2>${pass?(final?"Congratulations! You have reached Professional English.":`Congratulations! You are now Level ${from+1}.`):`Not yet. You need ${need} to ${final?"pass":"move up"}.`}</h2>
+  <p class="muted">${pass?(final?"Keep using English every day at work to stay at this level.":`${LEVELS[from].name}<span class="mg">${LEVELS[from].mg}</span>`):"Repeat a lesson or practise your difficult words, then try again.<span class='mg'>Avereno ny lesona iray, dia andramo indray.</span>"}</p></div>
   <div class="stack" style="margin-top:18px">${wrong.length?`<section class="panel stack tight"><h3>Check these answers</h3>${wrong.map(({it})=>`<div class="review-item"><span>${esc(it.q)}</span><span><b>Answer:</b> ${esc(it.o[it.a])}</span></div>`).join("")}</section>`:""}
   <button class="btn primary" data-act="home">Back to my course</button></div>`;
 }
@@ -899,17 +926,20 @@ function home(){
   outline+=`<div class="lvl"><div class="lvl-h"><h3>${L_.n}. ${L_.name}<span class="mg">${L_.mg}</span></h3>${L_.n===S.level?'<span class="tag">Your level</span>':""}</div>`;
   if(ls.length)ls.forEach((l,i)=>{const r=S.lessons[l.id];const isNext=nx&&nx.id===l.id;
    outline+=`<button class="les${r?" done":""}${isNext?" next":""}" data-act="lesson" data-id="${l.id}"><span class="n">${r?"✓":i+1}</span><span class="t"><b>${esc(l.title)}</b>${l.ai?'<span class="ai-tag">AI</span>':""}<small>${esc(l.kind)} · ${esc(l.topic)}${l.level<Math.min(S.level,2)&&!r?" · optional review":""}</small></span>${r?`<span class="s">${r.q}%</span>`:isNext?'<span class="s">Next</span>':""}</button>`});
+  if(L_.n===S.level&&L_.n>=3)outline+=`<button class="les" data-act="ailesson" data-news="1"><span class="n">+</span><span class="t"><b>Lesson from this week's news</b><small>The AI teacher finds real news and writes a lesson for your level</small></span></button>`;
   if(L_.n===S.level)outline+=`<button class="les" data-act="ailesson"><span class="n">+</span><span class="t"><b>Create a new lesson</b><small>The AI teacher writes one for your level</small></span></button>`;
   else if(!ls.length)outline+=`<p class="soon">${L_.n>S.level?`Opens when you reach Level ${L_.n}.<span class="mg">Misokatra rehefa tonga amin'ny ambaratonga ${L_.n}.</span>`:"No lessons here."}</p>`;
   outline+="</div>";
  });
  view.innerHTML=brand+`<div class="stack">
-  ${flashBlock()}${codeCard()}<div class="stats">
+  ${flashBlock()}${codeCard()}${S.certified?`<section class="cert"><p class="kicker" style="color:inherit;opacity:.85">Final test passed · ${esc(S.certified.date)}</p><h2>Professional English ✓</h2><p style="opacity:.9">Keep practising every day to stay at this level.</p></section>`:""}<div class="stats">
    <div class="stat"><b>${lv.n}</b><small>${lv.name}</small></div>
    <div class="stat"><b>${streak()}</b><small>Day streak</small></div>
    <div class="stat"><b>${done}</b><small>Lessons done</small></div>
    <div class="stat"><b>${wordsLearned()}</b><small>Words learned</small></div></div>
   ${dailyCard()}
+  ${typeof skillsTiles==="function"?skillsTiles():""}
+  ${typeof talkCard==="function"?talkCard():""}
   ${weak.length?`<div class="stack tight"><p class="kicker">Your focus</p><div class="chips">${weak.map(s=>`<span class="chip">${SEC[s].en}</span>`).join("")}</div></div>`:""}
   ${nx?`<section class="hero"><p class="kicker" style="color:inherit;opacity:.8">Next lesson · ${esc(nx.kind)}</p><h2>${esc(nx.title)}</h2><p>${esc(nx.topic)} · Level ${nx.level}</p><button class="btn" data-act="lesson" data-id="${nx.id}">Start lesson · Atombohy</button></section>`
    :`<section class="hero"><p class="kicker" style="color:inherit;opacity:.8">AI teacher · Mpampianatra AI</p><h2>Ready for a new lesson?</h2><p>The AI teacher writes a fresh Level ${S.level} lesson on a new topic, with your difficult words and weak points in mind.<span class="mg">Hanoratra lesona vaovao ho anao ny mpampianatra AI.</span></p><button class="btn" data-act="ailesson">Create a new lesson</button></section>`}
@@ -936,7 +966,7 @@ function renderTest(){
   body+=`<p class="inst">Tap Listen, then tap Record and read the sentence aloud.<span class="mg">Henoy aloha, avy eo tsindrio Record ary vakio mafy ilay fehezanteny.</span></p>${blk}<button class="btn primary" data-act="tnext">${T.i===n-1?"See my result":"Next"}</button>`}
  else body+=`<div class="opts">${it.o.map((o,i)=>`<button class="opt" data-act="tans" data-i="${i}">${esc(o)}</button>`).join("")}</div>`;
  view.innerHTML=`<div class="top"><button class="x" data-act="home" aria-label="Stop the test">${ICON.x}</button><div class="bar"><i style="width:${pct(T.i/n)}%"></i></div><span class="muted" style="font-size:.85rem;font-variant-numeric:tabular-nums">${T.i+1}/${n}</span></div>
- <div class="stack"><p class="kicker">${T.kind==="levelup"?`Level-up test · `:""}${sec.en} <span class="mg inline">· ${sec.mg}</span></p>
+ <div class="stack"><p class="kicker">${T.kind==="levelup"?(T.level>=5?"Final test · ":"Level-up test · "):""}${sec.en} <span class="mg inline">· ${sec.mg}</span></p>
  ${it.s==="speak"?"<h2>Read this sentence aloud</h2>":`<h2>${esc(it.q)}</h2>`}${body}</div>`;
  if(it.s==="listen")setTimeout(()=>say(it.audio,false),300);
 }
@@ -981,7 +1011,7 @@ function renderLesson(){
  window.scrollTo(0,0);if(TTS)speechSynthesis.cancel();
  const l=L.lesson;let h=lessonTop();
  if(L.step===0){
-  h+=`<div class="stack"><div><p class="kicker">Level ${l.level} · ${esc(l.topic)} · ${esc(l.kind)}</p><h1 style="margin-top:6px">${esc(l.title)}</h1>${l.source?`<p class="src" style="margin-top:6px">Ideas from ${esc(l.source)}</p>`:""}</div>
+  h+=`<div class="stack"><div><p class="kicker">Level ${l.level} · ${esc(l.topic)} · ${esc(l.kind)}</p><h1 style="margin-top:6px">${esc(l.title)}</h1>${l.source?`<p class="src" style="margin-top:6px">${l.track==="money"?"Ideas from ":"Source: "}${esc(l.source)}</p>`:""}</div>
   <p class="inst">Read and listen. Tap an underlined word to see its meaning.<span class="mg">Vakio sy henoy. Tsindrio ny teny misy tsipika hahitana ny dikany.</span></p>
   <div class="row"><button class="btn" data-act="playall">${ICON.spk} Listen to all</button><button class="btn toggle" data-act="slow" aria-pressed="${S.slow}">Slow voice</button><button class="iconbtn" data-act="voice">Change voice</button></div>
   <div class="passage">${l.lines.map(([who,t],i)=>`<div class="line"><button class="say" data-act="sayline" data-i="${i}" aria-label="Listen to this line">${ICON.spk}</button><div class="txt">${who?`<span class="who">${esc(who)}</span>`:""}${marked(t)}</div></div>`).join("")}</div>
@@ -1134,7 +1164,7 @@ async function openMoney(i){
  const m=MONEY[i],lv=S.level||1;
  showLoading(`Writing money lesson ${i+1}: ${m.title}`,"Manoratra lesona momba ny vola sy ny teny anglisy ny mpampianatra AI.",9500);
  try{
-  const raw=await aiCall("lesson",{level:lv,topic:"Money: "+m.title,kind:m.kind,money:{title:m.title,idea:m.idea,source:m.source},focus:(S.placement&&S.placement.weak||[]).map(k=>SEC[k].en),
+  const raw=await aiCall("lesson",{level:lv,topic:"Money: "+m.title,kind:m.kind,grammar:typeof grammarFocus==="function"?grammarFocus():"",money:{title:m.title,idea:m.idea,source:m.source},focus:(S.placement&&S.placement.weak||[]).map(k=>SEC[k].en),
    hardWords:[...Object.keys(S.hard).map(k=>W[k]&&W[k][0]).filter(Boolean),...recentVocab()].slice(0,20),mistakes:(S.mistakes||[]).slice(0,15),sounds:(S.sounds||[]).slice(0,15),avoid:ALL().map(l=>l.title)},loadingProgress);
   const lesson=normalizeAiLesson(raw,lv,"Money",m.kind);
   Object.assign(lesson,{track:"money",midx:i,source:m.source,topic:"Money & English"});
@@ -1153,13 +1183,13 @@ function moneyCard(){
 function moneyList(){return `<div class="stack tight" style="margin-top:4px">${MONEY.map((m,i)=>{const id=S.money&&S.money[i],r=id&&S.lessons[id];
  return `<button class="les${r?" done":""}" data-act="money" data-i="${i}"><span class="n">${r?"✓":i+1}</span><span class="t"><b>${esc(m.title)}</b><small>${esc(m.source)}</small></span>${r?`<span class="s">${r.q}%</span>`:""}</button>`}).join("")}
  <p class="muted" style="font-size:.82rem">These lessons teach general money ideas for learning. They are not personal financial advice.</p></div>`}
-async function createAiLesson(){
- const lv=S.level||1,topic=pickTopic(),kind=KINDS[Math.floor(Math.random()*KINDS.length)];
- showLoading(`Writing a new lesson: ${topic}`,"Manoratra lesona vaovao ho anao ny mpampianatra AI.",9000);
+async function createAiLesson(news){
+ const lv=S.level||1,kinds=(typeof LEVEL_KINDS!=="undefined"&&LEVEL_KINDS[lv])||KINDS,topic=news?"This week's news":pickTopic(),kind=news?"Article":kinds[Math.floor(Math.random()*kinds.length)];
+ showLoading(news?"Finding this week's news…":`Writing a new lesson: ${topic}`,news?"Mitady vaovao amin'ity herinandro ity ny mpampianatra AI.":"Manoratra lesona vaovao ho anao ny mpampianatra AI.",lv>=4?14000:10000);
  try{
-  const raw=await aiCall("lesson",{level:lv,topic,kind,focus:(S.placement&&S.placement.weak||[]).map(k=>SEC[k].en),
+  const raw=await aiCall("lesson",{level:lv,topic,kind,news:!!news,newsTopic:pickTopic(),grammar:typeof grammarFocus==="function"?grammarFocus():"",focus:(S.placement&&S.placement.weak||[]).map(k=>SEC[k].en),
    hardWords:[...Object.keys(S.hard).map(k=>W[k]&&W[k][0]).filter(Boolean),...recentVocab()].slice(0,20),mistakes:(S.mistakes||[]).slice(0,15),sounds:(S.sounds||[]).slice(0,15),avoid:ALL().map(l=>l.title)},loadingProgress);
-  const lesson=normalizeAiLesson(raw,lv,topic,kind);
+  const lesson=normalizeAiLesson(raw,lv,topic,kind);if(news&&raw.source_note)lesson.source=String(raw.source_note).slice(0,160);
   S.aiLessons=S.aiLessons||[];S.aiLessons.push(lesson);
   // Keep the backup small: drop the oldest finished AI lessons beyond 30.
   while(S.aiLessons.filter(l=>!l.track).length>30){const i=S.aiLessons.findIndex(l=>!l.track&&S.lessons[l.id]);if(i<0)break;const old=S.aiLessons.splice(i,1)[0];Object.keys(old.gloss||{}).forEach(k=>{if(!S.hard[k])delete W[k]})}
@@ -1406,7 +1436,7 @@ document.addEventListener("click",e=>{
   case "showrestore":{const box=document.getElementById("restoreBox");box.innerHTML=restoreForm();box.querySelector("input").focus();break}
   case "dorestore":doRestore();break;
   case "levelup":startLevelUp();break;
-  case "ailesson":createAiLesson();break;
+  case "ailesson":createAiLesson(b.dataset.news==="1");break;
   case "pinok":pinDone(true);break;
   case "pincancel":pinDone(false);break;
   case "checkwrite":checkWriting();break;

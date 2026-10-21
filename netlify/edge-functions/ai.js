@@ -13,7 +13,17 @@
 
 const CODE_RE = /^[a-z0-9][a-z0-9-]{5,39}$/;
 const CEFR = { 1: "A1 (beginner)", 2: "A2 (elementary)", 3: "B1 (intermediate)", 4: "B2 (upper-intermediate)", 5: "C1 (advanced)" };
-const TEXT_LEN = { 1: "80-120", 2: "120-180", 3: "180-250", 4: "250-330", 5: "330-420" };
+const TEXT_LEN = { 1: "80-120", 2: "120-180", 3: "220-320", 4: "350-480", 5: "480-650" };
+const LISTEN_LEN = { 1: "60-90", 2: "90-140", 3: "160-230", 4: "250-340", 5: "330-450" };
+
+// Question types grow harder with each level (reading lessons and tests).
+const QUESTION_MIX = {
+  1: "6 questions in this order: 3 comprehension questions about facts in the text (mc), 1 true/false (t=\"tf\", use \"truth\"), then 2 questions on the vocabulary or grammar of the lesson (mc).",
+  2: "7 questions in this order: 3 comprehension questions about facts (mc), 1 question asking why something happened (mc), 1 true/false (t=\"tf\", use \"truth\"), then 2 vocabulary or grammar questions (mc).",
+  3: "8 questions in this order: 2 detail questions (mc), 2 inference questions (why something happened, what we can guess, what a person probably feels) (mc), 1 vocabulary-in-context question ('In the text, \"...\" means...') (mc), 1 true/false (t=\"tf\", use \"truth\"), then 2 grammar or vocabulary questions, one of them on the grammar focus (mc).",
+  4: "9 multiple-choice questions in this order: 1 main idea, 2 details, 2 inference or implied meaning, 1 the writer's attitude, tone or purpose, 1 vocabulary or phrasal verb in context, 1 on the grammar focus, 1 register question ('Which sentence is the most polite / formal way to say...'). No true/false.",
+  5: "10 multiple-choice questions in this order: 1 best summary of the text, 1 detail, 2 inference, 1 writer's attitude or tone, 1 purpose of a paragraph or a phrase (e.g. to contrast, to give an example, to persuade), 1 collocation or idiom in context, 1 register ('Which is the most professional wording for an email to a client?'), 2 advanced grammar questions, one on the grammar focus. Wrong options must be plausible, not obviously wrong. No true/false.",
+};
 
 const json = (body, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", "cache-control": "no-store" } });
@@ -84,6 +94,7 @@ const SCHEMAS = {
       speak: { type: "array", items: { type: "object", required: ["t", "tip", "mg"], properties: { t: S, tip: S, mg: S } } },
       writing: { type: "object", required: ["task", "mg"], properties: { task: S, mg: S } },
       takeaway: { type: "object", required: ["en", "mg"], properties: { en: S, mg: S } },
+      source_note: S,
       action: { type: "object", required: ["en", "mg"], properties: { en: S, mg: S } },
     },
   },
@@ -122,6 +133,93 @@ const SCHEMAS = {
           properties: { en: S, say: S, pos: S, mg: S, fr: S, def: S, examples: { type: "array", items: S } },
         },
       },
+    },
+  },
+  grammar: {
+    type: "object",
+    required: ["title", "summary_en", "summary_mg", "rules", "examples", "mistakes", "exercises", "produce"],
+    properties: {
+      title: S,
+      summary_en: S,
+      summary_mg: S,
+      rules: { type: "array", items: { type: "object", required: ["rule", "example"], properties: { rule: S, example: S } } },
+      examples: { type: "array", items: { type: "object", required: ["en", "note"], properties: { en: S, note: S } } },
+      mistakes: { type: "array", items: { type: "object", required: ["wrong", "right", "why", "mg"], properties: { wrong: S, right: S, why: S, mg: S } } },
+      exercises: {
+        type: "array",
+        items: {
+          type: "object",
+          required: ["t", "q", "why", "mg"],
+          properties: { t: { type: "string", enum: ["mc", "gap", "fix"] }, q: S, o: { type: "array", items: S }, a: { type: "integer" }, answers: { type: "array", items: S }, why: S, mg: S },
+        },
+      },
+      produce: { type: "object", required: ["task", "mg"], properties: { task: S, mg: S } },
+    },
+  },
+  speakfb: {
+    type: "object",
+    required: ["score", "rubric", "corrected", "model", "mistakes", "good", "tip", "tip_mg", "follow_up"],
+    properties: {
+      score: { type: "integer" },
+      rubric: {
+        type: "object",
+        required: ["task", "grammar", "vocabulary", "fluency"],
+        properties: { task: { type: "integer" }, grammar: { type: "integer" }, vocabulary: { type: "integer" }, fluency: { type: "integer" } },
+      },
+      corrected: S,
+      model: S,
+      mistakes: { type: "array", items: { type: "object", required: ["wrong", "right", "why", "mg"], properties: { wrong: S, right: S, why: S, mg: S } } },
+      good: S,
+      tip: S,
+      tip_mg: S,
+      follow_up: S,
+    },
+  },
+  roleplay: {
+    type: "object",
+    required: ["reply", "correction", "end"],
+    properties: {
+      reply: S,
+      correction: { type: "object", required: ["needed", "better", "why", "mg"], properties: { needed: { type: "boolean" }, better: S, why: S, mg: S } },
+      end: { type: "boolean" },
+    },
+  },
+  listening: {
+    type: "object",
+    required: ["title", "kind", "speakers", "lines", "qs", "dictation", "words"],
+    properties: {
+      title: S,
+      kind: S,
+      speakers: { type: "array", items: { type: "object", required: ["name", "voice"], properties: { name: S, voice: { type: "string", enum: ["female", "male"] } } } },
+      lines: { type: "array", items: { type: "object", required: ["who", "text"], properties: { who: S, text: S } } },
+      qs: {
+        type: "array",
+        items: {
+          type: "object",
+          required: ["type", "q", "o", "a", "why", "mg"],
+          properties: { type: { type: "string", enum: ["gist", "detail", "inference", "attitude", "purpose"] }, q: S, o: { type: "array", items: S }, a: { type: "integer" }, why: S, mg: S },
+        },
+      },
+      dictation: { type: "array", items: S },
+      words: { type: "array", items: { type: "object", required: ["en", "mg", "def"], properties: { en: S, mg: S, def: S } } },
+    },
+  },
+  writepro: {
+    type: "object",
+    required: ["score", "rubric", "corrected", "mistakes", "model", "good", "tips", "tip_mg"],
+    properties: {
+      score: { type: "integer" },
+      rubric: {
+        type: "object",
+        required: ["task", "organisation", "grammar", "vocabulary", "tone"],
+        properties: { task: { type: "integer" }, organisation: { type: "integer" }, grammar: { type: "integer" }, vocabulary: { type: "integer" }, tone: { type: "integer" } },
+      },
+      corrected: S,
+      mistakes: { type: "array", items: { type: "object", required: ["wrong", "right", "why", "mg"], properties: { wrong: S, right: S, why: S, mg: S } } },
+      model: S,
+      good: S,
+      tips: { type: "array", items: S },
+      tip_mg: S,
     },
   },
   sentence: {
@@ -172,12 +270,14 @@ function build(task, p) {
         `Rules:\n` +
         `- Main text: ${TEXT_LEN[lv]} words, natural and interesting, on the given topic. Use the given kind (conversation lines have a speaker name in "who"; other kinds leave "who" empty and use one paragraph per line). Settings and names can be Malagasy or international; mix them.\n` +
         `- Grammar and vocabulary must fit the level. Weave in practice of the learner's weak points and difficult words when natural.\n` +
+        (p.grammar ? `- Grammar focus: "${str(p.grammar, 80)}". Use this structure naturally several times in the text, and test it in one question.\n` : "") +
+        (p.news ? `- This lesson is based on a real news story from this week. Use ONLY these facts, keep them accurate, write the story in your own words at the level, and start the text with the date and the source name. No political opinions. source_note: the source names and date.\nNEWS FACTS:\n${str(p.news, 3000)}\n` : "") +
         `- words: 8-12 useful words or phrases from the text that are new at this level. key = lowercase letters only, unique. say = an easy sound guide with the stressed part in CAPITALS (no IPA), plus a short note in brackets when a letter is silent or the past form is irregular. mg = correct, natural standard Malagasy; if there is no direct word, give a short Malagasy explanation. fr = French. def = a simple English definition. ex = a new short example sentence.\n` +
         `- In the text, mark every glossary word where it appears as [[word]], or [[shown form|key]] when the form differs from the key (e.g. [[bought|buy]]). Mark each key at least once. Do not mark anything else.\n` +
-        `- qs: 6-8 questions in this order: 3 comprehension questions (mc), 1 true/false (t="tf", use "truth"), then 2-3 questions on the grammar or vocabulary of the lesson (mc). mc questions have 3-4 options in "o" and the 0-based index of the correct one in "a". "why" explains the answer in simple English; "mg" is a short Malagasy hint.\n` +
+        `- qs: ${QUESTION_MIX[lv]} mc questions have ${lv >= 4 ? "4" : "3-4"} options in "o" and the 0-based index of the correct one in "a"; vary the position of the correct answer. "why" explains the answer in simple English (point to the part of the text); "mg" is a short Malagasy hint.\n` +
         `- match: 4 glossary keys for a matching exercise.\n` +
         `- speak: 3 sentences from the text (short enough to say in one breath at this level). Each tip targets a real problem for Malagasy speakers: adding a vowel after final consonants, the letter o read as "ou", TH, silent letters (h in hour, l in would/should), -ed endings, word stress, long vs short vowels. mg = the tip in short Malagasy.\n` +
-        `- writing: a short writing task (${lv <= 2 ? "3-5 sentences" : lv === 3 ? "5-8 sentences" : "a paragraph of 80-150 words"}) connected to the lesson, plus the task in Malagasy (mg).\n` +
+        `- writing: a writing task connected to the lesson (${lv <= 2 ? "3-5 sentences" : lv === 3 ? "a paragraph of 100-150 words" : lv === 4 ? "150-220 words, e.g. an email, an opinion or a short report" : "200-300 words in a professional genre: report, proposal, formal email or argued opinion"}), plus the task in Malagasy (mg).\n` +
         `- No politics, religion or upsetting content.` +
         (p.money ? MONEY_RULES(p.money, lv) : ""),
       user: JSON.stringify({
@@ -203,7 +303,7 @@ function build(task, p) {
         `- mistakes: up to 6 of the most important mistakes, each with the wrong part, the right version, why in simple English, and a short Malagasy explanation (mg).\n` +
         `- good: one sentence on what they did well. tip: one thing to practise next, in simple English; tip_mg: the same in Malagasy.\n` +
         `If the text is empty, off-topic or not in English, give a low score and explain kindly in "tip".`,
-      user: JSON.stringify({ task: str(p.task, 400), lesson: str(p.lesson, 80), learner_text: str(p.answer, 2000) }),
+      user: JSON.stringify({ task: str(p.task, 400), lesson: str(p.lesson, 80), learner_text: str(p.answer, 4000) }),
     };
   }
   if (task === "speaking") {
@@ -232,6 +332,19 @@ function build(task, p) {
       user: JSON.stringify({ level: lv, count: n, theme: str(p.theme, 60), difficult_words_to_avoid_repeating: list(p.hard, 30, 40), already_known: list(p.known, 500, 40) }),
     };
   }
+  if (task === "sentence" && p.grammar) {
+    const lv = level(p.level);
+    return {
+      system:
+        `You are a kind, precise English grammar teacher. ${LEARNER}\n` +
+        `The learner wrote ONE sentence to practise a grammar point. Judge it for app level ${lv} of 5 (CEFR ${CEFR[lv]}). Return JSON matching the schema:\n` +
+        `- uses_word: true if the sentence uses the target grammar structure.\n` +
+        `- correct: true only if the sentence is grammatically correct, makes sense, and uses the structure correctly. Small capital-letter or full-stop slips alone do not make it wrong.\n` +
+        `- corrected: the correct way to write their sentence with the structure, with the smallest changes that keep their idea.\n` +
+        `- why: in simple English, what was wrong and why, or what was good.\n- mg: the same in short, natural Malagasy.\n- better: a more natural version if there is one, else an empty string.`,
+      user: JSON.stringify({ grammar_point: str(p.grammar, 100), task: str(p.task, 300), learner_sentence: str(p.sentence, 400) }),
+    };
+  }
   if (task === "sentence") {
     const lv = level(p.level);
     return {
@@ -249,15 +362,96 @@ function build(task, p) {
     };
   }
   if (task === "levelup") {
-    const lv = Math.min(4, level(p.level));
+    const lv = level(p.level);
+    const final = lv >= 5;
+    const goal = final ? "has reached a professional, C1+ level of English and can use it confidently at work" : `has mastered CEFR ${CEFR[lv]} and is ready for ${CEFR[lv + 1]}`;
     return {
       system:
-        `You write fair English level tests. ${LEARNER}\n` +
-        `Write a 10-question level-up test that checks whether the learner has mastered CEFR ${CEFR[lv]} and is ready for ${CEFR[lv + 1]}. ` +
-        `Exactly: 3 vocabulary (s="vocab"), 3 grammar (s="grammar"), 2 reading (s="read") about the same passage "p" of ${TEXT_LEN[lv]} words (repeat "p" in both), ` +
-        `2 listening (s="listen") where "audio" is a sentence the app will read aloud and "q" asks about it. Every question has 4 options in "o" and the 0-based correct index in "a". ` +
-        `Only one option may be correct. Vary the position of the correct answer.`,
-      user: JSON.stringify({ level: lv, difficult_words: list(p.hardWords, 20, 30) }),
+        `You write fair, demanding English tests. ${LEARNER}\n` +
+        `Write a ${final ? 15 : 12}-question ${final ? "final professional English" : "level-up"} test that checks whether the learner ${goal}. ` +
+        `Exactly: ${final ? 4 : 3} vocabulary/collocation (s="vocab"), ${final ? 4 : 4} grammar (s="grammar", taken from the grammar list given), ${final ? 4 : 3} reading (s="read") about the same passage "p" of ${TEXT_LEN[lv]} words (repeat "p" in each), ` +
+        `${final ? 3 : 2} listening (s="listen") where "audio" is one or two natural sentences the app will read aloud and "q" asks about them. ` +
+        `Reading questions must include inference and the writer's attitude or purpose${lv >= 4 ? ", and one register question" : ""}; listening questions must include one inference. ` +
+        `Every question has 4 options in "o" and the 0-based correct index in "a". Only one option may be correct, wrong options must be plausible, and the correct position must vary.`,
+      user: JSON.stringify({ level: lv, grammar_of_this_level: list(p.grammar, 14, 80), difficult_words: list(p.hardWords, 20, 30) }),
+    };
+  }
+  if (task === "grammar") {
+    const lv = level(p.level);
+    return {
+      system:
+        `You are an expert English grammar teacher. ${LEARNER}\n` +
+        `Write ONE grammar lesson on the given grammar point for CEFR ${CEFR[lv]} (app level ${lv} of 5). Return JSON matching the schema:\n` +
+        `- summary_en: 2-4 short, simple sentences explaining when and why we use it. summary_mg: the same explanation in clear, natural Malagasy (compare with Malagasy or French when it helps).\n` +
+        `- rules: 3-5 form rules, each with a short example (e.g. rule "He/She/It + verb + -s", example "She works in Toamasina.").\n` +
+        `- examples: 5 natural example sentences from daily life and work in Madagascar, each with a short note on the form.\n` +
+        `- mistakes: 3-4 typical mistakes Malagasy or French speakers make with this point, with the right version, why, and mg.\n` +
+        `- exercises: exactly 10, in this order: 4 multiple choice (t="mc", "q" with a blank ___ or a question, 3-4 options in "o", correct 0-based index in "a"), ` +
+        `3 gap fills (t="gap", "q" is a sentence with ONE ___ and the base word in brackets if needed, "answers" lists every acceptable answer, short), ` +
+        `3 corrections (t="fix", "q" is a sentence with one mistake, "answers" lists the corrected full sentence and any other acceptable corrected versions). ` +
+        `Exercises get a little harder as they go; use real-life contexts. "why" explains the answer; "mg" is a short Malagasy hint.\n` +
+        `- produce: a task asking the learner to write 2 sentences of their own using this grammar point about their life or work, plus the task in Malagasy (mg).`,
+      user: JSON.stringify({ level: lv, grammar_point: str(p.title, 100), notes: str(p.note, 300), learner_recent_mistakes: list(p.mistakes, 10, 120) }),
+    };
+  }
+  if (task === "speakfb") {
+    const lv = level(p.level);
+    return {
+      system:
+        `You are an experienced English speaking examiner and coach. ${LEARNER}\n` +
+        `The learner answered a speaking question aloud; speech recognition turned it into text (so ignore missing punctuation and capital letters, and small recognition errors that are clearly not the learner's fault). ` +
+        `Judge it like a speaking exam at CEFR ${CEFR[lv]}, with the goal of reaching a professional level. Return JSON matching the schema:\n` +
+        `- rubric: each 0-5: task (did they answer the question fully, with reasons and examples), grammar (range and accuracy), vocabulary (range and precision), fluency (length, linking words, organisation). ` +
+        `For level ${lv}, a good answer is about ${[0, 20, 35, 60, 90, 120][lv]}+ words. score: 0-100 overall.\n` +
+        `- corrected: what they said, corrected, keeping their ideas and words where possible.\n` +
+        `- model: a strong natural answer to the same question at ${lv < 5 ? "the next level up" : "a professional level"}, using their ideas where possible, ${[0, 40, 60, 90, 120, 150][lv]}-${[0, 60, 90, 130, 170, 200][lv]} words.\n` +
+        `- mistakes: up to 6 of the most important, with wrong, right, why (simple English) and mg (Malagasy).\n` +
+        `- good: one sentence on what was good. tip: the one thing to work on next (e.g. give a reason and an example, use linking words, use past tenses correctly); tip_mg in Malagasy.\n` +
+        `- follow_up: one natural follow-up question an examiner or a manager would ask next.`,
+      user: JSON.stringify({ question: str(p.question, 300), learner_answer: str(p.answer, 3000), seconds_spoken: parseInt(p.seconds, 10) || 0 }),
+    };
+  }
+  if (task === "roleplay") {
+    const lv = level(p.level);
+    return {
+      system:
+        `You are acting in an English speaking role-play for a learner. ${LEARNER}\n` +
+        `Scenario: ${str(p.scenario, 400)}\nYou play: ${str(p.role, 120)}. The learner plays: ${str(p.learnerRole, 120)}.\n` +
+        `Stay in character. Speak naturally for CEFR ${CEFR[lv]}: ${lv <= 2 ? "short, clear sentences and simple words" : lv === 3 ? "natural sentences, everyday expressions" : "natural, realistic speech, including polite indirect language and some idioms"}. ` +
+        `Keep each reply to 1-3 sentences and usually end with a question or something the learner must respond to, so the conversation moves towards the goal: ${str(p.goal, 200)}.\n` +
+        `correction: look at the learner's LAST message only. needed = true if it has a grammar or word mistake or sounds unnatural or impolite for the situation; then better = a corrected natural version, why = short simple reason, mg = short Malagasy. If it was fine, needed = false and better, why and mg are empty strings. ` +
+        `The learner's words come from speech recognition, so ignore punctuation and capital letters.\n` +
+        `end: true when the goal is reached or after about 8 exchanges; then make your reply a natural closing line.\n` +
+        `If there is no learner message yet, start the conversation in character with your first line, and set needed to false.`,
+      user: JSON.stringify({ conversation_so_far: Array.isArray(p.history) ? p.history.slice(-16).map((t) => ({ who: t.who === "me" ? "learner" : "you", text: str(t.text, 600) })) : [] }),
+    };
+  }
+  if (task === "listening") {
+    const lv = level(p.level);
+    return {
+      system:
+        `You write listening exercises for English learners. ${LEARNER}\n` +
+        `Write ONE listening script at CEFR ${CEFR[lv]}, ${LISTEN_LEN[lv]} words, of the given kind and topic, to be read aloud by text-to-speech. Return JSON matching the schema:\n` +
+        `- speakers: 1-3 people with a name and a voice (female or male). lines: who speaks and what they say; natural spoken English${lv >= 3 ? " with fillers like 'well', 'actually', 'I mean', contractions and some idioms" : ""}. For a monologue or announcement use one speaker.\n` +
+        `- qs: ${lv <= 2 ? "5 questions: 1 gist, 3 detail, 1 inference" : lv === 3 ? "6 questions: 1 gist, 3 detail, 2 inference" : "7 questions: 1 gist, 2 detail, 2 inference, 1 attitude (how a speaker feels or what they think), 1 purpose (why a speaker says something)"}; ` +
+        `each with 3-4 options in "o" (4 from level 3) and the 0-based correct index in "a"; answers must only be possible by listening, and the correct position must vary. why = which part of the script gives the answer; mg = short Malagasy hint.\n` +
+        `- dictation: 3 sentences copied exactly from the script, ${lv <= 2 ? "6-9" : lv === 3 ? "9-13" : "12-18"} words each, useful for practising listening carefully.\n` +
+        `- words: 4-6 useful words from the script with Malagasy (mg) and a simple definition.\n- No politics, religion or upsetting content.`,
+      user: JSON.stringify({ level: lv, topic: str(p.topic, 80), kind: str(p.kind, 60) }),
+    };
+  }
+  if (task === "writepro") {
+    const lv = level(p.level);
+    return {
+      system:
+        `You are an experienced English writing examiner and business-writing coach. ${LEARNER}\n` +
+        `Mark the learner's text for the task like a writing exam at CEFR ${CEFR[lv]}, with the goal of professional English. Return JSON matching the schema:\n` +
+        `- rubric, each 0-5: task (does it do everything the task asks, right length), organisation (paragraphs, logical order, linking), grammar (range and accuracy), vocabulary (range, precision, collocations), tone (right formality and politeness for the reader). score 0-100.\n` +
+        `- corrected: their text with every error corrected, keeping their ideas and structure.\n` +
+        `- mistakes: up to 8 of the most important, with wrong, right, why (simple English) and mg (Malagasy).\n` +
+        `- model: a strong model answer to the same task at ${lv < 5 ? "the next level up" : "a professional level"}, using their ideas where possible, the right length and layout (greeting and sign-off for emails, headings for reports).\n` +
+        `- good: one sentence on what was good. tips: 2-3 short, specific tips (e.g. useful phrases for this kind of text). tip_mg: the most important tip in Malagasy.`,
+      user: JSON.stringify({ genre: str(p.genre, 60), task: str(p.task, 600), word_range: str(p.words, 30), learner_text: str(p.answer, 6000) }),
     };
   }
   return null;
@@ -265,10 +459,15 @@ function build(task, p) {
 
 // "light" tasks are small and cheap; they have their own daily allowance (see usage.mjs).
 const LIMITS = {
-  lesson: { fast: false, max: 8000 },
-  writing: { fast: false, max: 2000 },
+  lesson: { fast: false, max: 11000 },
+  grammar: { fast: false, max: 6000 },
+  speakfb: { fast: false, max: 2500, light: true },
+  roleplay: { fast: true, max: 800, light: true, gemini: true },
+  listening: { fast: false, max: 5000 },
+  writepro: { fast: false, max: 5000 },
+  writing: { fast: false, max: 3500 },
   speaking: { fast: true, max: 700, light: true, gemini: true },
-  levelup: { fast: false, max: 3500 },
+  levelup: { fast: false, max: 7000 },
   words: { fast: false, max: 4500, light: true, gemini: true },
   sentence: { fast: false, max: 700, light: true, gemini: true },
 };
@@ -385,7 +584,9 @@ export default async (req, context) => {
     return json({ error: "usage-check-failed" }, 503);
   }
 
-  const { system, user } = build(body.task, body.params || {});
+  const params = body.params || {};
+  if (body.task === "lesson" && params.news && key) return newsLesson(key, params, spec, left);
+  const { system, user } = build(body.task, params);
 
   if (spec.gemini) {
     const free = await askGemini(body.task, system, user, spec.max);
@@ -420,5 +621,76 @@ export default async (req, context) => {
     headers: { "content-type": "text/event-stream", "cache-control": "no-store", "x-ai-left": String(left ?? ""), "x-ai-provider": "claude" },
   });
 };
+
+// News lessons: (1) Claude searches this week's news and writes a short factual brief,
+// (2) the lesson is written from that brief and streamed to the app.
+// The response starts at once and sends small "ping" lines while searching, so the connection stays open.
+function newsLesson(key, params, spec, left) {
+  const enc = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      const ping = setInterval(() => controller.enqueue(enc.encode(": ping\n\n")), 4000);
+      let brief = "";
+      try {
+        const r = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+          body: JSON.stringify({
+            model: Netlify.env.get("AI_MODEL") || "claude-sonnet-5-5",
+            max_tokens: 1500,
+            tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 3 }],
+            system:
+              "You find news for English learners in Madagascar. Search the web for news from the last 7 days. Choose ONE interesting, non-political, not violent story " +
+              "about business, technology, science, health, environment, sport, culture, Africa or Madagascar, preferring " + str(params.newsTopic || "any of these", 60) + ". " +
+              "Then write a short factual brief in plain English: headline, date, 6-10 key facts with numbers, and the source names. No opinions.",
+            messages: [{ role: "user", content: "Find this week's story and write the brief." }],
+          }),
+        });
+        if (r.ok) {
+          const j = await r.json();
+          brief = (j.content || []).filter((b) => b.type === "text").map((b) => b.text).join("").trim();
+        } else console.log("News search failed", r.status, (await r.text()).slice(0, 300));
+      } catch (e) {
+        console.log("News search error", String(e).slice(0, 200));
+      }
+      clearInterval(ping);
+      const p2 = { ...params, news: brief || "", topic: brief ? "This week's news" : params.topic || "Technology" };
+      if (!brief) delete p2.news;
+      const { system, user } = build("lesson", p2);
+      try {
+        const up = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+          body: JSON.stringify({
+            model: Netlify.env.get("AI_MODEL") || "claude-sonnet-5-5",
+            max_tokens: spec.max,
+            system,
+            messages: [{ role: "user", content: user }],
+            output_config: { format: { type: "json_schema", schema: strict(SCHEMAS.lesson) } },
+            stream: true,
+          }),
+        });
+        if (!up.ok) {
+          console.log("Anthropic error (news lesson)", up.status, (await up.text()).slice(0, 400));
+          controller.enqueue(enc.encode(`data: ${JSON.stringify({ type: "error", error: { type: up.status === 529 ? "overloaded_error" : "api_error" } })}\n\n`));
+        } else {
+          const rd = up.body.getReader();
+          for (;;) {
+            const { done, value } = await rd.read();
+            if (done) break;
+            controller.enqueue(value);
+          }
+        }
+      } catch (e) {
+        controller.enqueue(enc.encode(`data: ${JSON.stringify({ type: "error", error: { type: "api_error" } })}\n\n`));
+      }
+      console.log(`Answered by Claude: news lesson (${brief ? "with news" : "news search failed, normal lesson"})`);
+      controller.close();
+    },
+  });
+  return new Response(stream, {
+    headers: { "content-type": "text/event-stream", "cache-control": "no-store", "x-ai-left": String(left ?? ""), "x-ai-provider": "claude" },
+  });
+}
 
 export const config = { path: "/api/ai", method: "POST" };

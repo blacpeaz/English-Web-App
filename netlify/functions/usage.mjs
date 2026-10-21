@@ -4,8 +4,8 @@
 // APP_PIN: the access PIN (required; the AI stays locked until it is set)
 // AI_DAILY_LIMIT: uses per recovery code per day (default 25)
 // AI_GLOBAL_DAILY_LIMIT: uses for the whole app per day (default 30)
-// Small checks (one sentence, speaking tips) count separately:
-// AI_LIGHT_DAILY_LIMIT (default 60 per code) and AI_LIGHT_GLOBAL_DAILY_LIMIT (default 100 for the app)
+// Small checks (sentences, speaking feedback, role-play turns, daily words) count separately:
+// AI_LIGHT_DAILY_LIMIT (default 120 per code) and AI_LIGHT_GLOBAL_DAILY_LIMIT (default 150 for the app)
 import { getStore } from "@netlify/blobs";
 import { CODE_RE, keyFor, json } from "../shared/hash.mjs";
 
@@ -52,8 +52,8 @@ export async function handle(req, store, env = process.env, now = new Date()) {
   if (!CODE_RE.test(code)) return json({ ok: false, reason: "bad-code" }, 400);
 
   const light = body?.kind === "light";
-  const perCode = Number((light ? env.AI_LIGHT_DAILY_LIMIT : env.AI_DAILY_LIMIT) || (light ? 60 : 25));
-  const global = Number((light ? env.AI_LIGHT_GLOBAL_DAILY_LIMIT : env.AI_GLOBAL_DAILY_LIMIT) || (light ? 100 : 30));
+  const perCode = Number((light ? env.AI_LIGHT_DAILY_LIMIT : env.AI_DAILY_LIMIT) || (light ? 120 : 25));
+  const global = Number((light ? env.AI_LIGHT_GLOBAL_DAILY_LIMIT : env.AI_GLOBAL_DAILY_LIMIT) || (light ? 150 : 30));
   const bucket = light ? "light/" : "";
   const kCode = `${day}/${bucket}${await keyFor(code)}`;
   const kAll = `${day}/${bucket}all`;
