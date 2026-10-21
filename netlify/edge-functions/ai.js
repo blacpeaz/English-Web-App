@@ -262,12 +262,22 @@ function geminiSchema(x) {
 }
 
 // Returns the parsed JSON, or null if Gemini is not set up, fails, is too slow, or answers badly.
+// Tries the main free model, then the lighter Flash-Lite model (often free when Flash is busy).
 async function askGemini(task, system, user, max) {
   const key = Netlify.env.get("GEMINI_API_KEY");
   if (!key) return null;
-  const model = Netlify.env.get("GEMINI_MODEL") || "gemini-3.8-flash";
+  const models = [Netlify.env.get("GEMINI_MODEL") || "gemini-3.8-flash", Netlify.env.get("GEMINI_LITE_MODEL") || "gemini-3.5-flash-lite"];
+  const waits = [14000, 10000];
+  for (let i = 0; i < models.length; i++) {
+    const out = await askGeminiModel(models[i], waits[i], key, task, system, user, max);
+    if (out) return out;
+  }
+  return null;
+}
+
+async function askGeminiModel(model, wait, key, task, system, user, max) {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 22000);
+  const timer = setTimeout(() => ctrl.abort(), wait);
   try {
     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
       method: "POST",
@@ -280,25 +290,25 @@ async function askGemini(task, system, user, max) {
       }),
     });
     if (!r.ok) {
-      console.log("Gemini error, using Claude instead:", r.status, (await r.text()).slice(0, 300));
+      console.log(`Gemini ${model} error:`, r.status, (await r.text()).slice(0, 300));
       return null;
     }
     const j = await r.json();
     const cand = j?.candidates?.[0];
     const text = (cand?.content?.parts || []).map((p) => p.text || "").join("");
     if (cand?.finishReason && cand.finishReason !== "STOP") {
-      console.log("Gemini stopped early, using Claude instead:", cand.finishReason);
+      console.log(`Gemini ${model} stopped early:`, cand.finishReason);
       return null;
     }
     const out = JSON.parse(text);
     const missing = (SCHEMAS[task].required || []).filter((f) => !(f in out));
     if (missing.length) {
-      console.log("Gemini answer incomplete, using Claude instead:", missing.join(","));
+      console.log(`Gemini ${model} answer incomplete:`, missing.join(","));
       return null;
     }
     return out;
   } catch (e) {
-    console.log("Gemini failed, using Claude instead:", String(e).slice(0, 200));
+    console.log(`Gemini ${model} failed:`, String(e).slice(0, 200));
     return null;
   } finally {
     clearTimeout(timer);

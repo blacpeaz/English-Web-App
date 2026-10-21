@@ -655,7 +655,7 @@ async function pullOnStart(){
   else{S.syncedAt=Date.now();persistLocal();setSync("ok")}
  }catch(e){setSync("offline")}
 }
-window.addEventListener("online",()=>pushNow());
+window.addEventListener("online",()=>{pushNow();const d=S.daily;if(d&&d.phase==="write"&&document.getElementById("sentBox")){const st=d.sent[d.keys[d.wi]];if(st&&st.err&&!st.res)renderWrite()}});
 async function doRestore(){
  const code=normCode(document.getElementById("restoreCode").value);
  const msg=document.getElementById("restoreMsg");
@@ -1146,7 +1146,7 @@ const dailyItems=()=>[...S.daily.review.map(k=>({k,rev:true})),...S.daily.keys.m
 let D={flip:false};
 function dailyCard(){
  const d=S.daily&&S.daily.date===today()?S.daily:null,bank=Object.keys(S.vocab||{}).length;
- if(d&&d.phase==="done")return `<section class="panel stack tight daily"><p class="kicker">Daily words · Teny isan'andro</p><h3>Done for today ✓</h3><p class="muted">${d.keys.length} new word${d.keys.length===1?"":"s"}${d.review.length?` and ${d.review.length} reviewed`:""}. Your word bank has ${bank} words. Come back tomorrow for new words.<span class="mg">Vita ho anio. Miverena rahampitso hianatra teny vaovao.</span></p><button class="btn ghost" data-act="dailysummary" style="align-self:flex-start">See today's words</button></section>`;
+ if(d&&d.phase==="done")return `<section class="panel stack tight daily"><p class="kicker">Daily words · Teny isan'andro</p><h3>Done for today ✓</h3><p class="muted">${d.keys.length} new word${d.keys.length===1?"":"s"}${d.review.length?` and ${d.review.length} reviewed`:""}. Your word bank has ${bank} words. Come back tomorrow for new words.<span class="mg">Vita ho anio. Miverena rahampitso hianatra teny vaovao.</span></p>${d.keys.some(k=>d.sent[k]&&d.sent[k].pending&&!d.sent[k].res)?`<button class="btn primary" data-act="dpending">Check my saved sentences</button>`:`<button class="btn ghost" data-act="dailysummary" style="align-self:flex-start">See today's words</button>`}</section>`;
  const due=dueReviewKeys().length,n=S.dailyCount||6;
  return `<section class="panel stack tight daily"><p class="kicker">Daily words · Teny isan'andro</p><h3>${d?"Continue today's words":"Today's new words"}</h3><p class="muted">${d?`${d.keys.length} new words${d.review.length?` + ${d.review.length} to review`:""}`:`${n} new words${due?` + ${Math.min(due,6)} to review`:""}`} · about 10 minutes. Learn them, see examples, then write your own sentences.<span class="mg">Mianara teny vaovao, jereo ny ohatra, dia manorata fehezanteny.</span></p><button class="btn primary" data-act="daily">${d?"Continue":"Start today's words"}</button></section>`;
 }
@@ -1213,10 +1213,11 @@ function sentResult(st){const r=st.res;
  return `<div class="fb no"><b>Not quite · Tsy dia marina</b><p>${esc(r.why)}<span class="mg">${esc(r.mg)}</span></p></div>
   <div class="stack tight" style="margin-top:12px"><p class="kicker">The correct way · Ny fomba marina</p><div class="row" style="flex-wrap:nowrap;align-items:flex-start"><p class="corr" style="flex:1;min-width:0">${esc(r.corrected)}</p><button class="say" data-act="dsaycorr" aria-label="Listen to the correct sentence">${ICON.spk}</button></div></div>`}
 function renderWrite(){
- const d=S.daily,n=d.keys.length,k=d.keys[d.wi||0];if(!k)return finishDaily();
+ const d=S.daily,n=d.keys.length,k=d.keys[d.wi||0];if(!k){d.redo=false;return finishDaily()}
  const v=S.vocab[k],st=d.sent[k]||{},last=d.wi===n-1,canRetry=st.res&&!st.res.correct&&!st.res.local&&(st.tries||0)<3;
  let btns;
- if(!st.res)btns=`<button class="btn primary" data-act="dcheck">Check my sentence · Hamarino</button><button class="link" data-act="dskip" style="align-self:center">Skip this word</button>`;
+ if(!st.res&&st.err)btns=`<button class="btn primary" data-act="dcheck">Check again · Hamarino indray</button><button class="link" data-act="dlater" style="align-self:center">Check it later and go to the ${last?"summary":"next word"}</button>`;
+ else if(!st.res)btns=`<button class="btn primary" data-act="dcheck">Check my sentence · Hamarino</button><button class="link" data-act="dskip" style="align-self:center">Skip this word</button>`;
  else if(canRetry)btns=`<button class="btn primary" data-act="dtry">Try again · Andramo indray</button><button class="link" data-act="dwnext" style="align-self:center">${last?"Finish":"Next word"}</button>`;
  else btns=`<button class="btn primary" data-act="dwnext">${last?"Finish · Vita":"Next word · Teny manaraka"}</button>`;
  view.innerHTML=dailyTop(d.wi/n,`${d.wi+1}/${n}`)+`<div class="stack">
@@ -1224,7 +1225,7 @@ function renderWrite(){
   <details class="panel"><summary class="muted" style="cursor:pointer;font-weight:700">See the meaning and examples again</summary><div class="stack tight" style="margin-top:10px"><p>${esc(v.def)}</p>${exList(v)}</div></details>
   <label for="sentBox" class="muted" style="font-size:.9rem">Your sentence${st.tries?` · try ${Math.min(st.tries+(st.res?0:1),3)} of 3`:""}</label>
   <textarea id="sentBox" class="textarea" style="min-height:96px" placeholder="Write one sentence about your life…" ${st.res?"readonly":""}>${esc(st.text||"")}</textarea>
-  <div id="sentRes" class="stack tight" aria-live="polite">${st.res?sentResult(st):""}</div>
+  <div id="sentRes" class="stack tight" aria-live="polite">${st.res?sentResult(st):st.err?`<div class="fb no"><b>Not checked yet</b><p>${esc(st.err[0])} Your sentence is saved. When you are back online, tap “Check again”.<span class="mg">${esc(st.err[1])} Voatahiry ny fehezantenyo. Tsindrio “Check again” rehefa misy internet.</span></p></div>`:""}</div>
   ${btns}</div>`;
 }
 async function checkSentence(){
@@ -1237,22 +1238,28 @@ async function checkSentence(){
  try{
   const r=await aiCall("sentence",{level:S.level||1,word:v.en,def:v.def,sentence:text});
   st.tries=(st.tries||0)+1;st.res={correct:!!r.correct,corrected:String(r.corrected||""),why:String(r.why||""),mg:String(r.mg||""),better:String(r.better||"")};
+  st.err=null;st.pending=false;
   if(st.res.correct)st.ok=true;else if(st.res.corrected)S.mistakes=[`${text} → ${st.res.corrected}`,...(S.mistakes||[])].slice(0,20);
   save();renderWrite();
  }catch(e){
   if(e.code==="need-pin"){const m=aiMsg(e);res.innerHTML=`<p class="muted">${esc(m[0])}<span class="mg">${esc(m[1])}</span></p>`;btn.disabled=false;btn.textContent="Check my sentence · Hamarino";return}
-  st.tries=(st.tries||0)+1;st.res={local:true,msg:aiMsg(e)[0]};save();renderWrite();
+  st.err=aiMsg(e);st.pending=true;save();renderWrite();
  }
 }
+const pendingKeys=()=>S.daily.keys.filter(k=>{const st=S.daily.sent[k];return st&&st.pending&&!st.res});
+function nextWrite(){const d=S.daily;
+ if(d.redo){const left=pendingKeys().filter(k=>d.keys.indexOf(k)>d.wi);d.wi=left.length?d.keys.indexOf(left[0]):d.keys.length;if(!left.length)d.redo=false}
+ else d.wi++;
+ save();renderWrite()}
 function finishDaily(){const d=S.daily;
- d.keys.forEach(k=>{const v=S.vocab[k],st=d.sent[k]||{};if(!v.box){v.box=1;v.due=addDays(today(),1)}if(!st.ok&&!(st.res&&st.res.local))S.hard[k]=S.hard[k]||0});
+ d.keys.forEach(k=>{const v=S.vocab[k],st=d.sent[k]||{};if(!v.box){v.box=1;v.due=addDays(today(),1)}if(!st.ok&&!st.pending&&!(st.res&&st.res.local))S.hard[k]=S.hard[k]||0});
  d.phase="done";d.finished=d.finished||Date.now();markDay();save();dailySummary();
 }
 function dailySummary(){const d=S.daily;window.scrollTo(0,0);
  const checked=d.keys.filter(k=>d.sent[k]&&d.sent[k].res&&!d.sent[k].res.local),good=checked.filter(k=>d.sent[k].ok).length;
  const mins=Math.max(1,Math.round(((d.finished||Date.now())-d.started)/60000));
  view.innerHTML=`<div class="stack" style="text-align:center;align-items:center;padding-top:12px"><p class="kicker">Daily words · Vita!</p><span class="score-ring">${d.keys.length}</span><h2>new words today</h2><p class="muted">${checked.length?`${good} of ${checked.length} sentences correct · `:""}${d.review.length?`${d.review.length} reviewed · `:""}${mins} min</p></div>
- <div class="stack" style="margin-top:18px"><section class="panel stack tight"><h3>Today's words</h3>${d.keys.map(k=>{const v=S.vocab[k],st=d.sent[k]||{},line=st.ok?st.text:(st.res&&st.res.corrected)||"";return `<div class="wrow"><button class="say" data-act="sayvocab" data-k="${k}" aria-label="Listen">${ICON.spk}</button><div style="min-width:0"><b>${esc(v.en)}</b> · ${esc(v.mg)}${line?`<span class="mg" style="font-style:normal">“${esc(line.trim())}”</span>`:""}</div></div>`}).join("")}</section>
+ <div class="stack" style="margin-top:18px">${pendingKeys().length?`<section class="panel stack tight" style="border-color:var(--gold);background:var(--gold-soft)"><h3>${pendingKeys().length} sentence${pendingKeys().length>1?"s":""} not checked yet</h3><p class="muted">They are saved. Connect to the internet and check them now.<span class="mg">Voatahiry ireo. Mampifandraisa amin'ny internet dia hamarino.</span></p><button class="btn primary" data-act="dpending">Check them now · Hamarino izao</button></section>`:""}<section class="panel stack tight"><h3>Today's words</h3>${d.keys.map(k=>{const v=S.vocab[k],st=d.sent[k]||{},line=st.ok?st.text:(st.res&&st.res.corrected)||"";return `<div class="wrow"><button class="say" data-act="sayvocab" data-k="${k}" aria-label="Listen">${ICON.spk}</button><div style="min-width:0"><b>${esc(v.en)}</b> · ${esc(v.mg)}${line?`<span class="mg" style="font-style:normal">“${esc(line.trim())}”</span>`:""}</div></div>`}).join("")}</section>
  <p class="muted" style="font-size:.9rem">These words come back for review after 1, 2, 4, 7, 15 and 30 days, so they stay in your memory. Words with wrong sentences also go to your difficult words.<span class="mg">Hiverina ireo teny ireo mba tsy hohadinoina.</span></p>
  <button class="btn primary" data-act="home">Back to my course</button></div>`;
 }
@@ -1322,8 +1329,10 @@ document.addEventListener("click",e=>{
   case "dsaycorr":{const d=S.daily,st=d.sent[d.keys[d.wi]];if(st&&st.res)say(st.res.corrected);break}
   case "dcheck":checkSentence();break;
   case "dtry":{const d=S.daily,st=d.sent[d.keys[d.wi]];st.res=null;save();renderWrite();const t=document.getElementById("sentBox");if(t){t.focus();t.setSelectionRange(t.value.length,t.value.length)}break}
-  case "dskip":{const d=S.daily,k=d.keys[d.wi];d.sent[k]=Object.assign(d.sent[k]||{},{skipped:true});d.wi++;save();renderWrite();break}
-  case "dwnext":S.daily.wi++;save();renderWrite();break;
+  case "dskip":{const d=S.daily,k=d.keys[d.wi];d.sent[k]=Object.assign(d.sent[k]||{},{skipped:true});nextWrite();break}
+  case "dwnext":nextWrite();break;
+  case "dlater":nextWrite();break;
+  case "dpending":{const d=S.daily,p=pendingKeys();if(!p.length)break;d.phase="write";d.redo=true;d.wi=d.keys.indexOf(p[0]);save();renderDaily();break}
   case "dailysummary":dailySummary();break;
   case "sayvocab":say(S.vocab[b.dataset.k].en);break;
   case "showrestore":{const box=document.getElementById("restoreBox");box.innerHTML=restoreForm();box.querySelector("input").focus();break}
