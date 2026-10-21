@@ -1,0 +1,740 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>Miteny English</title>
+<meta name="theme-color" content="#0B6B3D">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Base reset */
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0} img{max-width:100%} [hidden]{display:none!important}
+/* Layout: one narrow phone column; lesson screens are a step rail on top, content, then one primary action. */
+:root{
+  --bg:#F1F5F0; --surface:#FFFFFF; --sunk:#E4ECE5; --ink:#132219; --muted:#56685C; --line:#CFDBD2;
+  --green:#0B6B3D; --green-soft:#D5EBDD; --red:#C8322A; --red-soft:#F7DEDB; --gold:#D9A21B; --gold-soft:#FBEFCF;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0E1611; --surface:#16211A; --sunk:#1D2A21; --ink:#E6EEE8; --muted:#9BB0A2; --line:#2C3D32;
+  --green:#4CC384; --green-soft:#183A27; --red:#FF7468; --red-soft:#3D1E1B; --gold:#E9BF4E; --gold-soft:#3A3016; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#0E1611; --surface:#16211A; --sunk:#1D2A21; --ink:#E6EEE8; --muted:#9BB0A2; --line:#2C3D32;
+  --green:#4CC384; --green-soft:#183A27; --red:#FF7468; --red-soft:#3D1E1B; --gold:#E9BF4E; --gold-soft:#3A3016; color-scheme:dark }
+
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{color:var(--ink);font:17px/1.55 var(--body);-webkit-font-smoothing:antialiased}
+.app{max-width:580px;margin:0 auto;padding-block:12px 64px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+h1,h2,h3{font-family:var(--display);line-height:1.12;text-wrap:balance;margin:0}
+h1{font-size:2rem;font-weight:800;letter-spacing:-.02em}
+h2{font-size:1.45rem;font-weight:600}
+h3{font-size:1.1rem;font-weight:600}
+p{margin:0}
+.mg{display:block;color:var(--muted);font-size:.88em;font-style:italic;margin-top:2px}
+.mg.inline{display:inline;margin:0}
+.muted{color:var(--muted)}
+.kicker{font-size:.75rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.stack{display:flex;flex-direction:column;gap:16px}
+.stack.tight{gap:8px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+/* Buttons */
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,.w:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:8px 16px;border-radius:999px;border:1.5px solid var(--line);background:var(--surface);font-weight:700;font-size:.95rem}
+.btn svg{width:18px;height:18px;flex:none}
+.btn.ghost{background:transparent}
+.btn.primary{background:var(--green);border-color:var(--green);color:var(--bg);width:100%;min-height:54px;font-size:1.05rem;border-radius:var(--r)}
+.btn.primary[disabled]{opacity:.45;cursor:default}
+.btn.mic{border-color:var(--red);color:var(--red)}
+.btn.mic.on{background:var(--red);color:var(--bg);animation:pulse 1.2s ease-in-out infinite}
+.btn.toggle[aria-pressed="true"]{background:var(--gold-soft);border-color:var(--gold)}
+.btn.big{min-height:64px;padding:0 28px;font-size:1.1rem}
+.link{background:none;border:0;padding:6px 0;color:var(--green);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+@keyframes pulse{50%{opacity:.7}}
+@media (prefers-reduced-motion:reduce){.btn.mic.on{animation:none}*{transition:none!important}}
+
+/* Top bar */
+.top{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.top .x{width:44px;height:44px;border-radius:50%;border:1.5px solid var(--line);background:var(--surface);display:grid;place-items:center;flex:none}
+.top .x svg{width:18px;height:18px}
+.bar{flex:1;height:10px;background:var(--sunk);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--green);border-radius:99px;transition:width .3s}
+.steps{display:flex;gap:6px;flex:1;min-width:0}
+.steps span{flex:1;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-top:4px solid var(--sunk);padding-top:5px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.steps span.done{border-color:var(--green)}
+.steps span.now{border-color:var(--gold);color:var(--ink)}
+
+/* Brand header */
+.brand{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:8px 0 22px;border-bottom:1.5px solid var(--line);margin-bottom:22px}
+.brand b{font:800 1.5rem/1 var(--display);letter-spacing:-.02em}
+.brand b em{font-style:normal;color:var(--green)}
+
+/* Panels */
+.panel{background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r);padding:18px}
+.hero{background:var(--green);color:var(--bg);border-radius:var(--r);padding:24px 20px;display:flex;flex-direction:column;gap:12px}
+.hero .mg{color:inherit;opacity:.8}
+.hero .btn{background:var(--bg);color:var(--green);border-color:var(--bg);align-self:flex-start;min-height:52px;padding:0 22px}
+.inst{background:var(--gold-soft);border-radius:10px;padding:10px 14px;font-size:.95rem}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.stat{background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;min-width:0}
+.stat b{display:block;font:800 1.6rem/1.1 var(--display);font-variant-numeric:tabular-nums}
+.stat small{color:var(--muted);font-size:.8rem;font-weight:700}
+@media (min-width:520px){.stats{grid-template-columns:repeat(4,1fr)}}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:.8rem;font-weight:700;padding:4px 10px;border-radius:99px;background:var(--red-soft);color:var(--red)}
+.chip.ok{background:var(--green-soft);color:var(--green)}
+
+/* Course outline */
+.lvl{border-top:1.5px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:8px}
+.lvl-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.lvl-h .tag{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--bg);background:var(--gold);padding:2px 8px;border-radius:6px}
+.les{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;min-height:60px}
+.les .n{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:.85rem;background:var(--sunk);flex:none}
+.les.done .n{background:var(--green);color:var(--bg)}
+.les.next{border-color:var(--green);box-shadow:inset 4px 0 0 var(--green)}
+.les .t{flex:1;min-width:0}
+.les .t small{display:block;color:var(--muted);font-size:.8rem}
+.les .s{font-variant-numeric:tabular-nums;font-weight:700;color:var(--green);font-size:.9rem}
+.soon{color:var(--muted);font-size:.9rem;padding:10px 14px;border:1.5px dashed var(--line);border-radius:12px}
+
+/* Reading */
+.passage{display:flex;flex-direction:column;gap:12px;font-size:1.1rem;line-height:1.75}
+.line{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;padding:6px 8px;border-radius:10px;transition:background .2s}
+.line.hl{background:var(--gold-soft)}
+.line .who{display:block;font-weight:700;font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:var(--green)}
+.line .txt{min-width:0}
+.say{width:38px;height:38px;border-radius:50%;border:1.5px solid var(--line);background:var(--surface);display:grid;place-items:center;margin-top:2px}
+.say svg{width:16px;height:16px}
+.w{background:none;border:0;padding:0 1px;font:inherit;color:inherit;border-bottom:2.5px solid var(--gold);cursor:pointer;line-height:1.3}
+.w.seen{border-bottom-color:var(--green)}
+.reading p{background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:12px 14px;font-size:1rem}
+
+/* Word cards */
+.cards{display:grid;gap:10px}
+.card{background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.card .head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.card .en{font:600 1.3rem/1.2 var(--display)}
+.say-as{font-family:var(--mono);font-size:.82rem;color:var(--muted);letter-spacing:.02em}
+.trans{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:.95rem}
+.trans dt{font-size:.7rem;font-weight:700;letter-spacing:.08em;color:var(--muted);padding-top:3px}
+.trans dd{margin:0;min-width:0}
+.ex{font-style:italic;color:var(--muted);font-size:.92rem}
+
+/* Questions */
+.opts{display:flex;flex-direction:column;gap:10px}
+.opt{text-align:left;width:100%;min-height:54px;padding:12px 16px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);font-size:1.02rem}
+.opt.picked{border-color:var(--gold);background:var(--gold-soft)}
+.opt.right{border-color:var(--green);background:var(--green-soft)}
+.opt.wrong{border-color:var(--red);background:var(--red-soft)}
+.opt[disabled]{cursor:default}
+.fb{border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:4px}
+.fb.ok{background:var(--green-soft)}
+.fb.no{background:var(--red-soft)}
+.fb b{font-family:var(--display);font-size:1.15rem}
+.fb.ok b{color:var(--green)}
+.fb.no b{color:var(--red)}
+.match{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.match .col{display:flex;flex-direction:column;gap:8px;min-width:0}
+.match .opt{min-height:52px;font-size:.95rem;text-align:center;overflow-wrap:anywhere}
+.match .opt.gone{opacity:.45}
+
+/* Speaking */
+.spk{background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:10px}
+.spk-text{font:600 1.3rem/1.35 var(--display)}
+.spk-text span{border-radius:4px;padding:0 2px;transition:background .2s}
+.spk-text span.ok{background:var(--green-soft);color:var(--green)}
+.spk-text span.bad{background:var(--red-soft);color:var(--red)}
+.tip{font-size:.92rem;border-left:3px solid var(--gold);padding-left:10px}
+.spk-res{display:flex;flex-direction:column;gap:6px;font-size:.95rem}
+.meter{height:8px;background:var(--sunk);border-radius:99px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--green)}
+
+/* Results */
+.big-level{font:800 2.6rem/1 var(--display);letter-spacing:-.03em;color:var(--green)}
+.sec{display:grid;grid-template-columns:110px 1fr 44px;gap:10px;align-items:center;font-size:.92rem}
+.sec .meter{height:10px}
+.sec .meter i.low{background:var(--red)}
+.sec .v{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+.score-ring{font:800 3.4rem/1 var(--display);color:var(--green);font-variant-numeric:tabular-nums}
+
+/* Sheet */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:20}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--surface);border-radius:20px 20px 0 0;border-top:1.5px solid var(--line);max-width:580px;margin:0 auto;padding-top:18px;padding-bottom:calc(22px + env(safe-area-inset-bottom, 0px));padding-left:max(20px, env(safe-area-inset-left, 0px));padding-right:max(20px, env(safe-area-inset-right, 0px));display:flex;flex-direction:column;gap:10px;max-height:85%;overflow:auto}
+.confirm{background:var(--red-soft);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
+</style>
+</head>
+<body>
+
+<div class="app"><main id="view"></main></div>
+<div id="sheetHost"></div>
+
+<script>
+/* ================= CONTENT ================= */
+const LEVELS=[
+ {n:1,name:"Beginner",mg:"Vao manomboka"},
+ {n:2,name:"Elementary",mg:"Fototra"},
+ {n:3,name:"Intermediate",mg:"Antonony"},
+ {n:4,name:"Upper-intermediate",mg:"Ambonin'ny antonony"},
+ {n:5,name:"Advanced",mg:"Ambony"}];
+
+/* Glossary: en, say (sound guide, CAPITALS = stress), mg, fr, def, ex */
+const W={
+ morning:["morning","MOR-ning","maraina","matin","the early part of the day","I drink coffee every morning."],
+ name:["name","NAYM","anarana","nom","what people call you","My name is Hery."],
+ meet:["meet","MEET (long ee)","mihaona, mifankahalala","rencontrer","to see someone, often for the first time","Nice to meet you."],
+ work:["work","WERK","miasa","travailler","to do a job","I work in an office."],
+ warehouse:["warehouse","WAIR-haus","trano fitehirizan'entana","entrepôt","a big building where goods are kept","The boxes are in the warehouse."],
+ teacher:["teacher","TEE-cher","mpampianatra","enseignant(e)","a person who helps students learn","My teacher is very kind."],
+ teach:["teach","TEECH","mampianatra","enseigner","to help someone learn","She teaches English."],
+ learn:["learn","LERN","mianatra","apprendre","to get new knowledge or a new skill","I want to learn English."],
+ practice:["practice","PRAK-tis","miofana, manazatra tena","s'entraîner","to do something again and again to get better","Practice a little every day."],
+ tomorrow:["tomorrow","tu-MOR-oh","rahampitso","demain","the day after today","See you tomorrow!"],
+ fresh:["fresh","FRESH","vaovao, mbola tsara","frais","new and in good condition","The fish is fresh."],
+ howmuch:["how much","HAU MATCH","ohatrinona","combien","words to ask a price","How much is this shirt?"],
+ kilo:["kilo","KEE-loh","kilao","kilo","1,000 grams","One kilo of rice, please."],
+ expensive:["expensive","ik-SPEN-siv","lafo","cher","costs a lot of money","This phone is expensive."],
+ price:["price","PRAIS","vidiny","prix","how much money something costs","The price is good."],
+ take:["take","TAYK","maka","prendre","to get something and keep it","I will take two kilos."],
+ sweet:["sweet","SWEET","mamy","sucré","tastes like sugar","Mangoes are sweet."],
+ each:["each","EECH","tsirairay, isaky ny iray","chacun","every one, counted alone","Five hundred ariary each."],
+ money:["money","MA-nee","vola","argent","what you use to buy things","Here is the money."],
+ change:["change","CHAYNJ","vola averina","monnaie (à rendre)","money you get back after you pay","Here is your change."],
+ live:["live","LIV","mipetraka","habiter","to have your home in a place","I live in Fianarantsoa."],
+ brother:["brother","BRA-ther","anadahy (ho an'ny vehivavy) / rahalahy (ho an'ny lehilahy)","frère","a boy or man with the same parents as you","My younger brother is ten."],
+ farmer:["farmer","FAR-mer","mpamboly","agriculteur","a person who grows food or keeps animals","My father is a farmer."],
+ grow:["grow","GROH","mamboly","cultiver","to plant something and help it get big","He grows rice."],
+ vegetables:["vegetables","VEJ-ta-bulz","legioma, anana","légumes","plants we eat, like carrots and beans","Eat your vegetables."],
+ sell:["sell","SEL","mivarotra","vendre","to give something for money","She sells clothes."],
+ clothes:["clothes","KLOHZ","akanjo","vêtements","things you wear, like shirts and trousers","These clothes are new."],
+ evening:["evening","EEV-ning","hariva","soir","the end of the day, before night","We eat in the evening."],
+ together:["together","tu-GE-ther","miaraka","ensemble","with each other","We eat together."],
+ grandmother:["grandmother","GRAN-ma-ther","renibe","grand-mère","the mother of your mother or father","My grandmother is kind."],
+ visit:["visit","VI-zit","mitsidika","rendre visite","to go and see someone or a place","We visit her on Sundays."],
+ travel:["travel","TRA-vel  (travelled = TRA-veld)","mandeha lavitra, mivezivezy","voyager","to go from one place to another","He travelled by taxi-brousse."],
+ leave:["leave","LEEV  (past: left = LEFT)","miainga, miala","partir","to go away from a place","He left at five o'clock."],
+ road:["road","ROHD","lalana","route","the way cars and buses drive on","The road was long."],
+ curve:["curve","KERV","fiolahana","virage","a part of the road that is not straight","The road has many curves."],
+ driver:["driver","DRAI-ver","mpamily","chauffeur","a person who drives a car, bus or truck","The driver stopped in Moramanga."],
+ buy:["buy","BAI  (past: bought = BOT)","mividy","acheter","to get something by paying money","He bought some hot food."],
+ arrive:["arrive","a-RAIV","tonga","arriver","to reach a place","He arrived at night."],
+ tired:["tired","TAI-erd","reraka, vizana","fatigué","needing rest or sleep","I am tired after work."],
+ weather:["weather","WE-ther","toetr'andro","temps (météo)","rain, sun, wind, hot or cold","The weather was hot."],
+ stay:["stay","STAY","mijanona","rester","to remain in a place for some time","He stayed for three days."],
+ beach:["beach","BEECH (long ee)","tora-pasika","plage","the sand next to the sea","They walked on the beach."],
+ holiday:["holiday","HO-li-day","fialan-tsasatra","vacances","time away from work to rest","The best holiday of the year."],
+ appointment:["appointment","a-POINT-ment","fotoana voatendry","rendez-vous","a fixed time to meet someone","I have an appointment with the doctor."],
+ urgent:["urgent","ER-jent","maika","urgent","very important and needed now","Call me if it is urgent."],
+ checkup:["check-up","CHEK-up","fizahana ny fahasalamana","bilan de santé","a visit to see if you are healthy","I need a check-up."],
+ available:["available","a-VAY-la-bul","malalaka, misy","disponible","free to meet, or ready to use","The doctor is available on Friday."],
+ because:["because","bi-KOZ","satria","parce que","gives the reason for something","I stayed home because I was sick."],
+ perfect:["perfect","PER-fikt","tsara indrindra","parfait","very, very good, with no problems","Friday is perfect."],
+ early:["early","ER-lee","aloha, maraina be","en avance, tôt","before the usual or planned time","Please arrive early."],
+ wouldlike:["would like","WUD LAIK  (no L sound in would)","te-, mila (fomba fiteny am-panajana)","je voudrais","a polite way to say 'want'","I would like a coffee, please."],
+ number:["number","NAM-ber","laharana","numéro","the digits you call on a phone","What is your phone number?"],
+ late:["late","LAYT","tara, alina be","tard","after the usual time; near the middle of the night","Do not stay up late."],
+ habit:["habit","HA-bit","fahazarana","habitude","something you do often, almost without thinking","Reading is a good habit."],
+ screen:["screen","SKREEN","efijery","écran","the glass part of a phone, computer or TV","The screen is very bright."],
+ brain:["brain","BRAYN","ati-doha","cerveau","the part inside your head that thinks","Your brain needs sleep."],
+ fallasleep:["fall asleep","FOL a-SLEEP","resy torimaso, matory","s'endormir","to start sleeping","I fall asleep at ten."],
+ concentrate:["concentrate","KON-sen-trayt","mifantoka, mitandrina tsara","se concentrer","to think hard about one thing","I can't concentrate when it's noisy."],
+ mistake:["mistake","mi-STAYK","fahadisoana","erreur","something done wrong","Everybody makes mistakes."],
+ advice:["advice","ad-VAIS","torohevitra","conseil","an idea that helps someone decide","Thank you for your advice."],
+ pillow:["pillow","PI-loh","ondana","oreiller","a soft thing for your head in bed","Keep your phone far from your pillow."],
+ should:["should","SHUD  (no L sound)","tokony","devrait, il faut","says what is a good idea to do","You should sleep more."]
+};
+const word=k=>{const a=W[k];return {k,en:a[0],say:a[1],mg:a[2],fr:a[3],def:a[4],ex:a[5]}};
+
+const LESSONS=[
+ {id:"l1-meet",level:1,topic:"People & work",kind:"Conversation",title:"Nice to meet you",
+  lines:[
+   ["Sarah","Good [[morning]]! My [[name]] is Sarah. What is your name?"],
+   ["Hery","Good morning, Sarah. I am Hery. Nice to [[meet]] you."],
+   ["Sarah","Nice to meet you too. Where do you [[work]]?"],
+   ["Hery","I work at a [[warehouse]] in Antananarivo. And you?"],
+   ["Sarah","I am a [[teacher]]. I [[teach]] English at a school."],
+   ["Hery","That is great! I want to [[learn]] English."],
+   ["Sarah","Wonderful. [[Practice|practice]] a little every day, and you will speak well."],
+   ["Hery","Thank you. See you [[tomorrow]]!"]],
+  words:["morning","name","meet","work","warehouse","teacher","teach","learn","practice","tomorrow"],
+  qs:[
+   {t:"mc",q:"What is Sarah's job?",o:["She is a driver.","She is a teacher.","She is a doctor.","She is a seller."],a:1,why:"Sarah says: “I am a teacher.”",mg:"Mpampianatra i Sarah."},
+   {t:"mc",q:"Where does Hery work?",o:["At a school","At a market","At a warehouse","At a hospital"],a:2,why:"Hery says he works at a warehouse in Antananarivo.",mg:"Miasa ao amin'ny trano fitehirizan'entana i Hery."},
+   {t:"tf",q:"Hery wants to learn English.",a:true,why:"He says: “I want to learn English.”",mg:"Te hianatra teny anglisy i Hery."},
+   {t:"tf",q:"Sarah teaches French.",a:false,why:"She teaches English, not French.",mg:"Teny anglisy no ampianarin'i Sarah."},
+   {t:"mc",q:"She ___ English at a school.",o:["teach","teaches","teaching"],a:1,why:"With he, she or it, add -s to the verb: she teaches, he works.",mg:"Raha he / she / it no lazaina, ampiana -s ny matoanteny."},
+   {t:"match",keys:["tomorrow","name","work","teacher"]}],
+  speak:[
+   {t:"Good morning! My name is Hery.",tip:"Say “name” as NAYM. Stop on the M. Do not add a vowel after it.",mg:"Aza ampiana zanatsoratra eo amin'ny faran'ny teny."},
+   {t:"Nice to meet you.",tip:"“meet” has a long EE sound: meeet. End clearly on the T.",mg:"Halavao ny feo EE."},
+   {t:"I want to learn English.",tip:"“learn” sounds like LERN. The letters “ea” make one sound here.",mg:"Feo iray ihany ny “ea” ato."}]},
+
+ {id:"l1-market",level:1,topic:"Money & shopping",kind:"Conversation",title:"At the market",
+  lines:[
+   ["Seller","Hello! [[Fresh|fresh]] fruit today. What would you like?"],
+   ["Lalao","[[How much|howmuch]] are the bananas?"],
+   ["Seller","One [[kilo]] is two thousand ariary."],
+   ["Lalao","That is a little [[expensive]]. Can you give me a better [[price]]?"],
+   ["Seller","OK, for you, one thousand eight hundred."],
+   ["Lalao","Good. I will [[take]] two kilos. Do you have mangoes?"],
+   ["Seller","Yes, they are very [[sweet]]. Five hundred ariary [[each]]."],
+   ["Lalao","Please give me four mangoes. Here is the [[money]]."],
+   ["Seller","Thank you! Here is your [[change]]."]],
+  words:["fresh","howmuch","kilo","expensive","price","take","sweet","each","money","change"],
+  qs:[
+   {t:"mc",q:"What is the first price for one kilo of bananas?",o:["1,800 ariary","2,000 ariary","500 ariary","5,000 ariary"],a:1,why:"The seller first says: “One kilo is two thousand ariary.”",mg:"2 000 ariary ny vidiny voalohany."},
+   {t:"mc",q:"What is the new price after Lalao asks?",o:["2,000 ariary","1,500 ariary","1,800 ariary","1,000 ariary"],a:2,why:"The seller says: “For you, one thousand eight hundred.”",mg:"Nihena ho 1 800 ariary ny vidiny."},
+   {t:"mc",q:"How much does Lalao pay for 2 kilos of bananas and 4 mangoes?",o:["3,600 ariary","5,600 ariary","4,000 ariary","7,600 ariary"],a:1,why:"2 × 1,800 = 3,600 and 4 × 500 = 2,000. Total: 5,600 ariary.",mg:"3 600 + 2 000 = 5 600 ariary."},
+   {t:"tf",q:"The mangoes are sweet.",a:true,why:"The seller says they are very sweet.",mg:"Mamy be ny manga."},
+   {t:"mc",q:"How ___ are the bananas?",o:["many","much","big"],a:1,why:"To ask a price, say “How much…?”",mg:"“How much” no ampiasaina rehefa manontany vidiny."},
+   {t:"match",keys:["expensive","sweet","money","price"]}],
+  speak:[
+   {t:"How much are the bananas?",tip:"“much” sounds like MATCH. In “bananas” the strong part is in the middle: ba-NA-naz.",mg:"Hamafiso ny “NA” eo afovoany."},
+   {t:"Can you give me a better price?",tip:"Finish “price” with a clean S: PRAIS, not “praisi”.",mg:"Aza ampiana “i” ny farany."},
+   {t:"Here is your change.",tip:"“change” = CHAYNJ. End with the soft J sound.",mg:"Faranao amin'ny feo J malefaka."}]},
+
+ {id:"l1-family",level:1,topic:"Home & family",kind:"Reading",title:"My family",
+  lines:[
+   [null,"My [[name]] is Fara. I am twenty-five years old and I [[live]] in Fianarantsoa with my family."],
+   [null,"There are five people in my house: my mother, my father, my two younger [[brothers|brother]] and me."],
+   [null,"My father is a [[farmer]]. He [[grows|grow]] rice and [[vegetables]]. My mother [[sells|sell]] [[clothes]] at the market. My brothers are students."],
+   [null,"In the [[evening]], we eat dinner [[together]] and talk about our day. On Sundays, we [[visit]] my [[grandmother]]."],
+   [null,"I love my family very much."]],
+  words:["live","brother","farmer","grow","vegetables","sell","clothes","evening","together","grandmother","visit"],
+  qs:[
+   {t:"mc",q:"How many people live in Fara's house?",o:["Three","Four","Five","Six"],a:2,why:"Mother, father, two brothers and Fara: five people.",mg:"Olona dimy no mipetraka ao an-trano."},
+   {t:"mc",q:"What does Fara's father do?",o:["He is a teacher.","He is a farmer.","He is a driver.","He sells clothes."],a:1,why:"“My father is a farmer. He grows rice and vegetables.”",mg:"Mpamboly ny rain'i Fara."},
+   {t:"mc",q:"Where does Fara's mother work?",o:["At the market","At a school","In a warehouse","At home"],a:0,why:"“My mother sells clothes at the market.”",mg:"Mivarotra akanjo eny an-tsena ny reniny."},
+   {t:"tf",q:"The family eats dinner alone, at different times.",a:false,why:"They eat dinner together.",mg:"Miaraka misakafo hariva izy ireo."},
+   {t:"mc",q:"My father ___ rice.",o:["grow","grows","growing"],a:1,why:"With he, she or it, add -s: he grows.",mg:"Raha he / she / it, ampiana -s."},
+   {t:"match",keys:["farmer","clothes","evening","together"]}],
+  speak:[
+   {t:"I live in Fianarantsoa with my family.",tip:"For TH in “with”, put your tongue between your teeth and blow gently.",mg:"Ataovy eo anelanelan'ny nify ny lela."},
+   {t:"My father is a farmer.",tip:"“father” = FA-ther, with the tongue between your teeth for TH.",mg:"TH: lela eo anelanelan'ny nify."},
+   {t:"We eat dinner together.",tip:"“together” = tu-GE-ther. Make GE the strong part.",mg:"Hamafiso ny “GE”."}]},
+
+ {id:"l2-trip",level:2,topic:"Travel",kind:"Story",title:"A trip to Toamasina",
+  lines:[
+   [null,"Last month, Rado [[travelled|travel]] from Antananarivo to Toamasina by taxi-brousse. He [[left|leave]] very early, at five o'clock in the morning."],
+   [null,"The [[road]] was long and full of [[curves|curve]], and the trip took almost nine hours. On the way, the [[driver]] stopped in Moramanga, and Rado [[bought|buy]] some hot food."],
+   [null,"When he [[arrived|arrive]] in Toamasina, he was [[tired]] but happy. The [[weather]] was hot and the air smelled of the sea."],
+   [null,"He [[stayed|stay]] with his cousin for three days. They walked on the [[beach]] and ate fresh fish. Rado said it was the best [[holiday]] of the year."]],
+  words:["travel","leave","road","curve","driver","buy","arrive","tired","weather","stay","beach","holiday"],
+  qs:[
+   {t:"mc",q:"How long was the trip?",o:["About three hours","Almost nine hours","Five days","One hour"],a:1,why:"“The trip took almost nine hours.”",mg:"Efa ho sivy ora ny dia."},
+   {t:"mc",q:"Where did the driver stop?",o:["In Toamasina","In Antsirabe","In Moramanga","In Mahajanga"],a:2,why:"“The driver stopped in Moramanga.”",mg:"Nijanona tao Moramanga ny mpamily."},
+   {t:"mc",q:"How long did Rado stay with his cousin?",o:["One day","Three days","One week","One month"],a:1,why:"“He stayed with his cousin for three days.”",mg:"Telo andro izy no nijanona."},
+   {t:"tf",q:"The weather in Toamasina was cold.",a:false,why:"The text says the weather was hot.",mg:"Nafana ny toetr'andro."},
+   {t:"mc",q:"Yesterday I ___ to the market.",o:["go","went","going"],a:1,why:"“Yesterday” means the past. go → went.",mg:"Lasa (past): go lasa went."},
+   {t:"mc",q:"What is the past form of “buy”?",o:["buyed","bought","buying"],a:1,why:"“buy” is irregular: buy → bought.",mg:"Tsy manaraka fitsipika: buy → bought."},
+   {t:"match",keys:["road","driver","beach","tired"]}],
+  speak:[
+   {t:"Last month, I travelled to Toamasina.",tip:"In “travelled”, -ed is a soft D: TRA-veld. Do not say “travel-ed”.",mg:"Ny -ed dia feo D malefaka fotsiny."},
+   {t:"The trip took almost nine hours.",tip:"In “hours”, the H is silent: OW-erz.",mg:"Tsy tononina ny H ao amin'ny “hours”."},
+   {t:"It was the best holiday of the year.",tip:"“the” starts with TH: tongue between your teeth. Make HO strong in HO-li-day.",mg:"TH: lela eo anelanelan'ny nify."}]},
+
+ {id:"l2-phone",level:2,topic:"Health & services",kind:"Phone call",title:"Booking an appointment",
+  lines:[
+   ["Receptionist","Good afternoon, City Health Clinic. How can I help you?"],
+   ["Mamy","Hello. I [[would like|wouldlike]] to make an [[appointment]] with Dr Rasoa, please."],
+   ["Receptionist","Of course. Is it [[urgent]]?"],
+   ["Mamy","No, it is not urgent. I need a [[check-up|checkup]]."],
+   ["Receptionist","Dr Rasoa is [[available]] on Thursday at ten o'clock or on Friday at two."],
+   ["Mamy","Thursday is not good for me [[because]] I am going to work all day. Friday at two is [[perfect]]."],
+   ["Receptionist","Great. Can I have your name and phone [[number]]?"],
+   ["Mamy","My name is Mamy Randria, and my number is 034 12 345 67."],
+   ["Receptionist","Thank you. Please arrive ten minutes [[early]]. We will see you on Friday."],
+   ["Mamy","Thank you very much. Goodbye!"]],
+  words:["wouldlike","appointment","urgent","checkup","available","because","perfect","number","early"],
+  qs:[
+   {t:"mc",q:"Which day does Mamy choose?",o:["Thursday","Friday","Monday","Saturday"],a:1,why:"“Friday at two is perfect.”",mg:"Zoma no nofidin'i Mamy."},
+   {t:"mc",q:"Why can't Mamy go on Thursday?",o:["He is sick.","He is going to work all day.","The clinic is closed.","He is travelling."],a:1,why:"“I am going to work all day.”",mg:"Hiasa tontolo andro izy ny alakamisy."},
+   {t:"tf",q:"Mamy's visit is urgent.",a:false,why:"Mamy says: “No, it is not urgent.”",mg:"Tsy maika ilay izy."},
+   {t:"mc",q:"How early should Mamy arrive?",o:["Five minutes","Ten minutes","One hour","Thirty minutes"],a:1,why:"“Please arrive ten minutes early.”",mg:"Folo minitra mialoha."},
+   {t:"mc",q:"Tomorrow I ___ call the doctor.",o:["will","did","was"],a:0,why:"For the future, use will + verb: I will call.",mg:"Ho avy: will + matoanteny."},
+   {t:"mc",q:"Which sentence is the most polite?",o:["I want a coffee.","Give me coffee.","I would like a coffee, please."],a:2,why:"“I would like…, please” is polite. Use it with customers and in shops.",mg:"“I would like…, please” no fomba fiteny am-panajana."},
+   {t:"match",keys:["appointment","available","because","early"]}],
+  speak:[
+   {t:"I would like to make an appointment, please.",tip:"In “would”, the L is silent: WUD.",mg:"Tsy tononina ny L ao amin'ny “would”."},
+   {t:"Friday at two is perfect.",tip:"“perfect” = PER-fikt. Say the T at the end clearly.",mg:"Tononina mazava ny T farany."},
+   {t:"Thank you very much.",tip:"“Thank” starts with TH: tongue between your teeth, then air. It is not “tank”.",mg:"Tsy “tank” fa “thank”."}]},
+
+ {id:"l2-sleep",level:2,topic:"Health & technology",kind:"Article",title:"Is your phone making you tired?",
+  lines:[
+   [null,"Many people use their phones [[late]] at night. They watch videos, read messages or scroll on social media until midnight. Doctors say this is a bad [[habit]]."],
+   [null,"The light from the [[screen]] tells your [[brain]] that it is still daytime, so it is harder to [[fall asleep|fallasleep]]."],
+   [null,"If you sleep badly, you feel tired, you cannot [[concentrate]] at work, and you make more [[mistakes|mistake]]."],
+   [null,"Here is some simple [[advice]]: stop using your phone one hour before bed, keep it far from your [[pillow]], and try to go to sleep at the same time every night. You [[should]] also drink less coffee in the afternoon."],
+   [null,"These small changes can help you feel better and work better."]],
+  words:["late","habit","screen","brain","fallasleep","concentrate","mistake","advice","pillow","should"],
+  qs:[
+   {t:"mc",q:"Why is it harder to fall asleep after using a phone?",o:["The phone is too heavy.","The light tells your brain it is still daytime.","The videos are boring.","Phones are expensive."],a:1,why:"The screen light makes the brain think it is daytime.",mg:"Ny hazavan'ny efijery no mampieritreritra ny ati-doha fa mbola antoandro."},
+   {t:"mc",q:"When should you stop using your phone?",o:["One hour before bed","At midnight","After lunch","In the morning"],a:0,why:"“Stop using your phone one hour before bed.”",mg:"Adino ny finday adiny iray alohan'ny hatoriana."},
+   {t:"tf",q:"The text says you should drink more coffee in the afternoon.",a:false,why:"It says to drink LESS coffee.",mg:"Kafe kely kokoa no torohevitra."},
+   {t:"mc",q:"What happens if you sleep badly?",o:["You feel tired and make more mistakes.","You become rich.","You sleep better.","Nothing happens."],a:0,why:"You feel tired, can't concentrate and make more mistakes.",mg:"Reraka ianao ary maro ny fahadisoana."},
+   {t:"mc",q:"You ___ drink less coffee.",o:["should","shoulds","to should"],a:0,why:"After “should”, use the verb with no “to” and no -s: you should drink.",mg:"Aorian'ny “should”: matoanteny tsotra."},
+   {t:"mc",q:"A “habit” is…",o:["something you do often","a kind of phone","a kind of food","a doctor"],a:0,why:"A habit is something you do often.",mg:"Habit = fahazarana."},
+   {t:"match",keys:["screen","brain","advice","pillow"]}],
+  speak:[
+   {t:"Stop using your phone one hour before bed.",tip:"In “hour”, the H is silent: OW-er.",mg:"Tsy tononina ny H ao amin'ny “hour”."},
+   {t:"You should drink less coffee.",tip:"In “should”, the L is silent: SHUD.",mg:"Tsy tononina ny L."},
+   {t:"Small changes can help you feel better.",tip:"Finish each word cleanly: small, changes, help. Do not add a vowel at the end.",mg:"Aza ampiana zanatsoratra ny faran'ny teny."}]}
+];
+
+const SEC={vocab:{en:"Vocabulary",mg:"Voambolana"},grammar:{en:"Grammar",mg:"Fitsipi-pitenenana"},read:{en:"Reading",mg:"Famakiana"},listen:{en:"Listening",mg:"Fihainoana"},speak:{en:"Pronunciation",mg:"Fanononana"}};
+const READING=["Nirina opens her small shop at seven every morning. She sells rice, oil, soap and phone credit.","Business is slow in the morning but busy after five, when people come home from work.","Last year she saved enough money to buy a fridge, so now she can also sell cold drinks. Next year, she hopes to open a second shop near the bus station."];
+const TEST=[
+ {s:"vocab",q:"A person who drives a bus is a ___.",o:["driver","teacher","farmer","seller"],a:0},
+ {s:"vocab",q:"The opposite of “cheap” is ___.",o:["small","expensive","fast","old"],a:1},
+ {s:"vocab",q:"Which English word means “rahampitso” (demain)?",o:["yesterday","today","tomorrow","tonight"],a:2},
+ {s:"vocab",q:"I worked all day. Now I am very ___.",o:["tired","early","cheap","wet"],a:0},
+ {s:"vocab",q:"Which phrase means the same as “improve”?",o:["get worse","get better","stop","forget"],a:1},
+ {s:"grammar",q:"He ___ in a warehouse.",o:["work","works","working","are work"],a:1},
+ {s:"grammar",q:"Yesterday we ___ to the beach.",o:["go","goes","went","going"],a:2},
+ {s:"grammar",q:"There ___ three people in the office.",o:["is","are","am","be"],a:1},
+ {s:"grammar",q:"I have lived here ___ 2019.",o:["since","for","from","during"],a:0},
+ {s:"grammar",q:"If it rains tomorrow, we ___ stay at home.",o:["will","would","did","are"],a:0},
+ {s:"read",q:"When is Nirina's shop busiest?",o:["At seven in the morning","At lunchtime","After five","At midnight"],a:2},
+ {s:"read",q:"Why did Nirina buy a fridge?",o:["To keep rice","To sell cold drinks","For her house","Because it was cheap"],a:1},
+ {s:"read",q:"What is her plan for next year?",o:["Close the shop","Sell phones","Open a second shop","Buy a bus"],a:2},
+ {s:"listen",audio:"The bus leaves at half past three.",q:"When does the bus leave?",o:["3:30","3:15","2:30","3:45"],a:0},
+ {s:"listen",audio:"Could you bring me two bottles of water and one coffee, please?",q:"What does the person want?",o:["One water and two coffees","Two waters and one coffee","Two coffees only","Three bottles of water"],a:1},
+ {s:"listen",audio:"I'm sorry, the manager isn't here today. He'll be back on Monday.",q:"When will the manager be back?",o:["Today","Tomorrow","On Sunday","On Monday"],a:3},
+ {s:"speak",text:"I work every day from Monday to Friday."},
+ {s:"speak",text:"Thank you very much for your help."},
+ {s:"speak",text:"I think learning English is important for my future."}
+];
+
+/* ================= STATE ================= */
+const KEY="miteny-english-v1";
+function fresh(){return {placement:null,history:[],level:null,lessons:{},hard:{},seen:{},days:[],slow:false}}
+let S;
+try{S=Object.assign(fresh(),JSON.parse(localStorage.getItem(KEY)||"null")||{})}catch(e){S=fresh()}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist().catch(()=>{})}catch(e){}
+const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+function markDay(){const t=today();if(!S.days.includes(t))S.days.push(t);save()}
+function streak(){const set=new Set(S.days);let n=0;const d=new Date();if(!set.has(today()))d.setDate(d.getDate()-1);
+ for(;;){const k=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");if(set.has(k)){n++;d.setDate(d.getDate()-1)}else break}return n}
+
+/* ================= HELPERS ================= */
+const view=document.getElementById("view");
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const pct=x=>Math.round(x*100);
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const ICON={
+ spk:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>',
+ mic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>',
+ x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>'};
+const clean=t=>t.replace(/\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/g,"$1");
+function marked(t){return esc(t).replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g,(m,shown,k)=>{k=k||shown;return `<button class="w${S.seen[k]?" seen":""}" data-w="${k}">${shown}</button>`})}
+
+/* ================= VOICE ================= */
+const TTS="speechSynthesis" in window;let VOICE=null;
+function pickVoice(){const vs=speechSynthesis.getVoices();VOICE=vs.find(v=>/^en[-_]GB/i.test(v.lang)&&/google|female|natural/i.test(v.name))||vs.find(v=>/^en[-_]GB/i.test(v.lang))||vs.find(v=>/^en[-_]US/i.test(v.lang))||vs.find(v=>/^en/i.test(v.lang))||null}
+if(TTS){pickVoice();speechSynthesis.onvoiceschanged=pickVoice}
+function utter(t,slow){const u=new SpeechSynthesisUtterance(clean(t));u.lang=VOICE?VOICE.lang:"en-GB";if(VOICE)u.voice=VOICE;u.rate=slow?0.68:0.92;return u}
+function say(t,slow){if(!TTS)return;speechSynthesis.cancel();speechSynthesis.speak(utter(t,slow===undefined?S.slow:slow))}
+function playLines(lines){if(!TTS)return;speechSynthesis.cancel();lines.forEach((t,i)=>{const u=utter(t,S.slow);u.onstart=()=>hl(i);u.onend=()=>{if(i===lines.length-1)hl(-1)};speechSynthesis.speak(u)})}
+function hl(i){document.querySelectorAll(".line").forEach((el,j)=>el.classList.toggle("hl",j===i))}
+
+/* ================= SPEAKING CHECK ================= */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+const SPK={},SPKRES={};let spkN=0,rec=null;
+const NUM={zero:"0",one:"1",two:"2",three:"3",four:"4",five:"5",six:"6",seven:"7",eight:"8",nine:"9",ten:"10"};
+const toks=s=>s.toLowerCase().replace(/’/g,"'").replace(/-/g," ").replace(/[^a-z0-9' ]/g," ").split(/\s+/).filter(Boolean).map(w=>NUM[w]||w);
+function compare(target,heard){
+ const words=target.split(/\s+/),flat=[],owner=[];
+ words.forEach((w,i)=>toks(w).forEach(p=>{flat.push(p);owner.push(i)}));
+ const h=toks(heard),n=flat.length,m=h.length;
+ const dp=Array.from({length:n+1},()=>new Array(m+1).fill(0));
+ for(let i=n-1;i>=0;i--)for(let j=m-1;j>=0;j--)dp[i][j]=flat[i]===h[j]?dp[i+1][j+1]+1:Math.max(dp[i+1][j],dp[i][j+1]);
+ const okFlat=new Set();let i=0,j=0;
+ while(i<n&&j<m){if(flat[i]===h[j]){okFlat.add(i);i++;j++}else if(dp[i+1][j]>=dp[i][j+1])i++;else j++}
+ const ok=words.map((w,wi)=>{const idx=owner.map((o,k)=>o===wi?k:-1).filter(k=>k>=0);return idx.every(k=>okFlat.has(k))});
+ return {ok,score:n?okFlat.size/n:0};
+}
+function speakBlock(text,tip,tipMg){
+ const id="s"+(++spkN);SPK[id]=text;
+ const words=text.split(/\s+/).map((w,i)=>`<span data-wi="${i}">${esc(w)}</span>`).join(" ");
+ return `<div class="spk" id="${id}"><p class="spk-text">${words}</p>${tip?`<p class="tip">${esc(tip)}${tipMg?`<span class="mg">${esc(tipMg)}</span>`:""}</p>`:""}
+ <div class="row"><button class="btn ghost" data-act="hear" data-sid="${id}">${ICON.spk} Listen</button><button class="btn ghost" data-act="hearslow" data-sid="${id}">Slow</button><button class="btn mic" data-act="mic" data-sid="${id}">${ICON.mic} Record</button></div>
+ <div class="spk-res" aria-live="polite"></div></div>`;
+}
+function selfRate(id,res,msg){res.innerHTML=`<p class="muted">${esc(msg)}</p><div class="row"><button class="btn" data-act="self" data-sid="${id}" data-v="1">I said it well</button><button class="btn ghost" data-act="self" data-sid="${id}" data-v="0">I need more practice</button></div>`}
+function startMic(id,btn){
+ const box=document.getElementById(id),res=box.querySelector(".spk-res");
+ if(!SR)return selfRate(id,res,"This browser can't check speaking. Open the app in Chrome on an Android phone. For now, listen, say it aloud, then rate yourself.");
+ if(rec){try{rec.abort()}catch(e){}rec=null}
+ const r=new SR();r.lang="en-US";r.interimResults=false;r.maxAlternatives=5;rec=r;
+ btn.classList.add("on");btn.innerHTML=ICON.mic+" Listening…";
+ res.innerHTML='<p class="muted">Speak now. <span class="mg inline">Mitenena izao.</span></p>';
+ r.onresult=e=>{let best=null;for(const a of e.results[0]){const c=compare(SPK[id],a.transcript);if(!best||c.score>best.score)best={...c,heard:a.transcript}}showSpeak(id,best)};
+ r.onerror=e=>{
+  if(["not-allowed","service-not-allowed","audio-capture"].includes(e.error))selfRate(id,res,"The microphone is blocked here. Open the app in Chrome on your phone and allow the microphone. For now, say it aloud and rate yourself.");
+  else if(e.error==="no-speech")res.innerHTML='<p class="muted">I did not hear anything. Tap Record and speak a little louder.<span class="mg">Tsy nahare aho. Tsindrio indray ary mitenena mafimafy kokoa.</span></p>';
+  else if(e.error!=="aborted")res.innerHTML=`<p class="muted">The speaking check stopped (${esc(e.error)}). Check the internet connection and try again.</p>`;
+ };
+ r.onend=()=>{btn.classList.remove("on");btn.innerHTML=ICON.mic+" Record";if(rec===r)rec=null};
+ try{r.start()}catch(err){btn.classList.remove("on");btn.innerHTML=ICON.mic+" Record";selfRate(id,res,"The speaking check could not start. Say it aloud and rate yourself.")}
+}
+function showSpeak(id,c){
+ const box=document.getElementById(id);if(!box)return;
+ box.querySelectorAll(".spk-text span").forEach((s,i)=>{s.className=c.ok[i]?"ok":"bad"});
+ const p=pct(c.score);const prev=SPKRES[id];if(typeof prev!=="number"||c.score>prev)SPKRES[id]=c.score;
+ const msg=p>=85?["Excellent!","Tena tsara!"]:p>=60?["Good. Practise the red words again.","Tsara. Avereno ny teny mena."]:["Keep practising. Listen again, then say it slowly.","Henoy indray, dia tenony moramora."];
+ box.querySelector(".spk-res").innerHTML=`<div class="meter"><i style="width:${p}%"></i></div><p><b>${p}%</b> · ${msg[0]}<span class="mg">${msg[1]}</span></p><p class="muted">I heard: “${esc(c.heard)}”</p>`;
+}
+
+/* ================= WORD SHEET ================= */
+const host=document.getElementById("sheetHost");
+function openWord(k){
+ if(!W[k])return;const w=word(k);S.seen[k]=(S.seen[k]||0)+1;save();
+ document.querySelectorAll(`.w[data-w="${k}"]`).forEach(b=>b.classList.add("seen"));
+ host.innerHTML=`<div class="scrim" data-act="closesheet"></div><div class="sheet" role="dialog" aria-label="${esc(w.en)}">
+  <div class="card" style="border:0;padding:0"><div class="head"><span class="en">${esc(w.en)}</span><button class="say" data-act="sayword" data-k="${k}" aria-label="Listen">${ICON.spk}</button></div>
+  <span class="say-as">${esc(w.say)}</span>
+  <dl class="trans"><dt>MG</dt><dd><b>${esc(w.mg)}</b></dd><dt>FR</dt><dd>${esc(w.fr)}</dd><dt>EN</dt><dd>${esc(w.def)}</dd></dl>
+  <p class="ex">${esc(w.ex)}</p></div>
+  <button class="btn primary" data-act="closesheet">Close · Hidio</button></div>`;
+ say(w.en);
+}
+function closeSheet(){host.innerHTML=""}
+
+/* ================= HOME ================= */
+function nextLesson(){const start=Math.min(S.level||1,2);return LESSONS.find(l=>l.level>=start&&!S.lessons[l.id])||LESSONS.find(l=>!S.lessons[l.id])||null}
+function wordsLearned(){const s=new Set();LESSONS.forEach(l=>{if(S.lessons[l.id])l.words.forEach(k=>s.add(k))});return s.size}
+function home(){
+ window.scrollTo(0,0);L=null;T=null;
+ const brand=`<header class="brand"><b>Miteny <em>English</em></b><span class="muted" style="font-size:.85rem">Malagasy · Français</span></header>`;
+ if(!S.placement){
+  view.innerHTML=brand+`<div class="stack">
+   <section class="hero"><p class="kicker" style="color:inherit;opacity:.8">Step 1 of your course</p>
+    <h1>Let's find your English level.</h1>
+    <p>Answer 19 short questions: words, grammar, reading, listening and speaking. It takes about 10 minutes.<span class="mg">Andao ho fantarina ny haavon'ny teny anglisy anao. Fanontaniana fohy 19, eo amin'ny 10 minitra eo.</span></p>
+    <button class="btn" data-act="starttest">Start the level test</button></section>
+   <section class="panel stack tight"><h3>How the course works</h3>
+    <p>Each lesson has a short text to read and hear, tap-to-translate words in Malagasy and French, questions, and speaking practice that checks your pronunciation.</p>
+    <p class="muted" style="font-size:.9rem">Tip: use Chrome on an Android phone and allow the microphone for speaking practice.</p></section></div>`;
+  return;
+ }
+ const lv=LEVELS[(S.level||1)-1],nx=nextLesson(),done=LESSONS.filter(l=>S.lessons[l.id]).length,hardN=Object.keys(S.hard).length;
+ const weak=S.placement.weak||[];
+ let outline="";
+ LEVELS.forEach(L_=>{
+  const ls=LESSONS.filter(l=>l.level===L_.n);
+  outline+=`<div class="lvl"><div class="lvl-h"><h3>${L_.n}. ${L_.name}<span class="mg">${L_.mg}</span></h3>${L_.n===S.level?'<span class="tag">Your level</span>':""}</div>`;
+  if(ls.length)ls.forEach((l,i)=>{const r=S.lessons[l.id];const isNext=nx&&nx.id===l.id;
+   outline+=`<button class="les${r?" done":""}${isNext?" next":""}" data-act="lesson" data-id="${l.id}"><span class="n">${r?"✓":i+1}</span><span class="t"><b>${esc(l.title)}</b><small>${esc(l.kind)} · ${esc(l.topic)}${l.level<Math.min(S.level,2)&&!r?" · optional review":""}</small></span>${r?`<span class="s">${r.q}%</span>`:isNext?'<span class="s">Next</span>':""}</button>`});
+  else outline+=`<p class="soon">New lessons for this level arrive with the AI teacher.<span class="mg">Ho avy miaraka amin'ny mpampianatra AI ny lesona.</span></p>`;
+  outline+="</div>";
+ });
+ view.innerHTML=brand+`<div class="stack">
+  <div class="stats">
+   <div class="stat"><b>${lv.n}</b><small>${lv.name}</small></div>
+   <div class="stat"><b>${streak()}</b><small>Day streak</small></div>
+   <div class="stat"><b>${done}/${LESSONS.length}</b><small>Lessons done</small></div>
+   <div class="stat"><b>${wordsLearned()}</b><small>Words learned</small></div></div>
+  ${weak.length?`<div class="stack tight"><p class="kicker">Your focus</p><div class="chips">${weak.map(s=>`<span class="chip">${SEC[s].en}</span>`).join("")}</div></div>`:""}
+  ${nx?`<section class="hero"><p class="kicker" style="color:inherit;opacity:.8">Next lesson · ${esc(nx.kind)}</p><h2>${esc(nx.title)}</h2><p>${esc(nx.topic)} · Level ${nx.level}</p><button class="btn" data-act="lesson" data-id="${nx.id}">Start lesson · Atombohy</button></section>`
+   :`<section class="hero"><h2>All starter lessons done!</h2><p>Practise your difficult words, or repeat a lesson to improve your score.<span class="mg">Vita ny lesona rehetra.</span></p></section>`}
+  ${hardN?`<section class="panel row" style="justify-content:space-between"><div><h3>Difficult words</h3><p class="muted">${hardN} word${hardN>1?"s":""} to practise</p></div><button class="btn" data-act="review">Practise</button></section>`:""}
+  <section class="stack tight"><p class="kicker">Your course</p>${outline}</section>
+  <section class="row" style="justify-content:space-between;border-top:1.5px solid var(--line);padding-top:14px">
+   <button class="link" data-act="starttest">Retake level test</button><button class="link" data-act="askreset" style="color:var(--muted)">Reset progress</button></section>
+  <div id="resetBox"></div></div>`;
+}
+
+/* ================= PLACEMENT TEST ================= */
+let T=null;
+function startTest(){T={i:0,ans:[],spk:{}};renderTest()}
+function renderTest(){
+ window.scrollTo(0,0);
+ const it=TEST[T.i],n=TEST.length,sec=SEC[it.s];
+ let body="";
+ if(it.s==="read")body+=`<div class="passage reading">${READING.map(p=>`<p>${esc(p)}</p>`).join("")}</div>`;
+ if(it.s==="listen")body+=`<div class="row"><button class="btn big" data-act="tplay">${ICON.spk} Play</button><button class="btn ghost" data-act="tplayslow">Slow</button></div>`;
+ if(it.s==="speak"){T.spkId=null;const blk=speakBlock(it.text);T.spkId="s"+spkN;
+  body+=`<p class="inst">Tap Listen, then tap Record and read the sentence aloud.<span class="mg">Henoy aloha, avy eo tsindrio Record ary vakio mafy ilay fehezanteny.</span></p>${blk}<button class="btn primary" data-act="tnext">${T.i===n-1?"See my result":"Next"}</button>`}
+ else body+=`<div class="opts">${it.o.map((o,i)=>`<button class="opt" data-act="tans" data-i="${i}">${esc(o)}</button>`).join("")}</div>`;
+ view.innerHTML=`<div class="top"><button class="x" data-act="home" aria-label="Stop the test">${ICON.x}</button><div class="bar"><i style="width:${pct(T.i/n)}%"></i></div><span class="muted" style="font-size:.85rem;font-variant-numeric:tabular-nums">${T.i+1}/${n}</span></div>
+ <div class="stack"><p class="kicker">${sec.en} <span class="mg inline">· ${sec.mg}</span></p>
+ ${it.s==="speak"?"<h2>Read this sentence aloud</h2>":`<h2>${esc(it.q)}</h2>`}${body}</div>`;
+ if(it.s==="listen")setTimeout(()=>say(it.audio,false),300);
+}
+function testAnswer(i,btn){
+ const it=TEST[T.i];if(T.ans[T.i]!==undefined)return;T.ans[T.i]=i===it.a;
+ view.querySelectorAll(".opt").forEach(b=>b.disabled=true);btn.classList.add("picked");
+ setTimeout(testNext,380);
+}
+function testNext(){
+ const it=TEST[T.i];if(it.s==="speak")T.spk[T.i]=SPKRES[T.spkId];
+ if(rec){try{rec.abort()}catch(e){}}
+ T.i++;if(T.i<TEST.length)renderTest();else finishTest();
+}
+function finishTest(){
+ const sec={vocab:[0,0],grammar:[0,0],read:[0,0],listen:[0,0]};const sp=[];
+ TEST.forEach((it,i)=>{if(it.s==="speak"){const v=T.spk[i];if(typeof v==="number")sp.push(v)}else{sec[it.s][1]++;if(T.ans[i])sec[it.s][0]++}});
+ let c=0,t=0;const res={};Object.entries(sec).forEach(([k,[a,b]])=>{c+=a;t+=b;res[k]=a/b});
+ res.speak=sp.length?sp.reduce((a,b)=>a+b,0)/sp.length:null;
+ const overall=c/t,level=overall<0.35?1:overall<0.7?2:3;
+ const weak=Object.keys(res).filter(k=>k==="speak"?(res.speak===null||res.speak<0.7):res[k]<0.6);
+ S.placement={date:today(),overall,level,res,weak};S.history.push(S.placement);S.level=level;markDay();save();
+ showResult();
+}
+function showResult(){
+ window.scrollTo(0,0);const p=S.placement,lv=LEVELS[p.level-1];
+ const rows=Object.keys(SEC).map(k=>{const v=p.res[k];return `<div class="sec"><span>${SEC[k].en}</span><div class="meter"><i class="${v!==null&&v<0.6?"low":""}" style="width:${v===null?0:pct(v)}%"></i></div><span class="v">${v===null?"–":pct(v)+"%"}</span></div>`}).join("");
+ const startNote=p.level>=3?"Your level is above the starter lessons. Start with Level 2 to warm up; Level 3 lessons arrive with the AI teacher.":p.level===2?"You start at Level 2. Level 1 lessons stay open if you want a review.":"You start at Level 1. Go slowly and use the word help often.";
+ view.innerHTML=`<div class="stack" style="padding-top:12px">
+  <p class="kicker">Your result · Ny valinao</p>
+  <div><span class="big-level">Level ${lv.n}</span><h2 style="margin-top:6px">${lv.name}</h2><span class="mg">${lv.mg}</span></div>
+  <section class="panel stack tight">${rows}${p.res.speak===null?'<p class="muted" style="font-size:.88rem">Pronunciation was not measured on this device. It is added to your focus areas.</p>':""}</section>
+  ${p.weak.length?`<div class="stack tight"><p class="kicker">Your course will focus on</p><div class="chips">${p.weak.map(s=>`<span class="chip">${SEC[s].en}</span>`).join("")}</div></div>`:'<div class="chips"><span class="chip ok">Strong in every area</span></div>'}
+  <p>${startNote}</p>
+  <button class="btn primary" data-act="home">See my course · Jereo ny fianarako</button></div>`;
+}
+
+/* ================= LESSON ================= */
+let L=null;const STEPS=["Read","Words","Questions","Speak","Finish"];
+function openLesson(id){const lesson=LESSONS.find(l=>l.id===id);L={lesson,step:0,qi:0,right:0,answered:false,spkIds:[],missed:[]};renderLesson()}
+function lessonTop(){return `<div class="top"><button class="x" data-act="home" aria-label="Leave lesson">${ICON.x}</button><div class="steps">${STEPS.map((s,i)=>`<span class="${i<L.step?"done":i===L.step?"now":""}">${s}</span>`).join("")}</div></div>`}
+function renderLesson(){
+ window.scrollTo(0,0);if(TTS)speechSynthesis.cancel();
+ const l=L.lesson;let h=lessonTop();
+ if(L.step===0){
+  h+=`<div class="stack"><div><p class="kicker">Level ${l.level} · ${esc(l.topic)} · ${esc(l.kind)}</p><h1 style="margin-top:6px">${esc(l.title)}</h1></div>
+  <p class="inst">Read and listen. Tap an underlined word to see its meaning.<span class="mg">Vakio sy henoy. Tsindrio ny teny misy tsipika hahitana ny dikany.</span></p>
+  <div class="row"><button class="btn" data-act="playall">${ICON.spk} Listen to all</button><button class="btn toggle" data-act="slow" aria-pressed="${S.slow}">Slow voice</button></div>
+  <div class="passage">${l.lines.map(([who,t],i)=>`<div class="line"><button class="say" data-act="sayline" data-i="${i}" aria-label="Listen to this line">${ICON.spk}</button><div class="txt">${who?`<span class="who">${esc(who)}</span>`:""}${marked(t)}</div></div>`).join("")}</div>
+  <button class="btn primary" data-act="lnext">Next: words · Teny</button></div>`;
+ }else if(L.step===1){
+  h+=`<div class="stack"><div><p class="kicker">New words</p><h2>${l.words.length} words from “${esc(l.title)}”</h2></div>
+  <p class="inst">Say each word, then tap “Show meaning” to check yourself.<span class="mg">Tenony ny teny tsirairay, avy eo tsindrio “Show meaning”.</span></p>
+  <div class="cards">${l.words.map(k=>{const w=word(k);return `<div class="card"><div class="head"><span class="en">${esc(w.en)}</span><button class="say" data-act="sayword" data-k="${k}" aria-label="Listen">${ICON.spk}</button></div><span class="say-as">${esc(w.say)}</span>
+   <div hidden data-mean="${k}"><dl class="trans"><dt>MG</dt><dd><b>${esc(w.mg)}</b></dd><dt>FR</dt><dd>${esc(w.fr)}</dd><dt>EN</dt><dd>${esc(w.def)}</dd></dl><p class="ex">${esc(w.ex)}</p></div>
+   <button class="link" data-act="reveal" data-k="${k}" style="align-self:flex-start">Show meaning</button></div>`}).join("")}</div>
+  <button class="btn primary" data-act="lnext">Next: questions · Fanontaniana</button></div>`;
+ }else if(L.step===2){
+  h+=renderQuestion();
+ }else if(L.step===3){
+  L.spkIds=[];const blocks=l.speak.map(s=>{const b=speakBlock(s.t,s.tip,s.mg);L.spkIds.push("s"+spkN);return b}).join("");
+  h+=`<div class="stack"><div><p class="kicker">Pronunciation</p><h2>Say it like a native speaker</h2></div>
+  <p class="inst">Listen first. Then tap Record and say the sentence. Green words were clear; red words need practice.<span class="mg">Henoy aloha. Avy eo tsindrio Record ary tenony. Maitso = mazava; mena = mbola mila fanazarana.</span></p>
+  ${blocks}<button class="btn primary" data-act="lnext">Finish lesson · Vita</button></div>`;
+ }else{
+  h+=renderFinish();
+ }
+ view.innerHTML=h;
+}
+function renderQuestion(){
+ const l=L.lesson,q=l.qs[L.qi],n=l.qs.length;
+ let h=`<div class="stack"><div class="row" style="justify-content:space-between"><p class="kicker">Question ${L.qi+1} of ${n}</p><span class="muted" style="font-size:.85rem;font-variant-numeric:tabular-nums">${L.right} correct</span></div>`;
+ if(q.t==="match"){
+  if(!L.m){L.m={left:shuffle(q.keys),right:shuffle(q.keys),sel:null,done:[],mistakes:new Set()}}
+  const m=L.m;
+  h+=`<h2>Match each English word to its Malagasy meaning.</h2><span class="mg">Ampifanaraho ny teny anglisy sy ny dikany malagasy.</span>
+  <div class="match"><div class="col">${m.left.map(k=>`<button class="opt${m.done.includes(k)?" right gone":""}${m.sel===k?" picked":""}" data-act="ml" data-k="${k}" ${m.done.includes(k)?"disabled":""}>${esc(W[k][0])}</button>`).join("")}</div>
+  <div class="col">${m.right.map(k=>`<button class="opt${m.done.includes(k)?" right gone":""}" data-act="mr" data-k="${k}" ${m.done.includes(k)?"disabled":""}>${esc(W[k][2].split(/[,(/]/)[0].trim())}</button>`).join("")}</div></div>`;
+  if(m.done.length===q.keys.length){const ok=m.mistakes.size===0;
+   h+=`<div class="fb ${ok?"ok":"no"}"><b>${ok?"All correct!":"Done."}</b><p>${ok?"You matched every word on the first try.":"Some words were difficult. They are saved to your practice list."}<span class="mg">${ok?"Marina daholo!":"Voatahiry ho averina ireo teny sarotra."}</span></p></div><button class="btn primary" data-act="qnext">${L.qi===n-1?"Next: speaking":"Next question"}</button>`}
+  return h+"</div>";
+ }
+ const opts=q.t==="tf"?["True","False"]:q.o,ans=q.t==="tf"?(q.a?0:1):q.a;
+ h+=`<h2>${esc(q.q)}</h2>${q.t==="tf"?'<span class="mg">Marina sa diso?</span>':""}<div class="opts">${opts.map((o,i)=>{let c="";if(L.answered){if(i===ans)c=" right";else if(i===L.pick)c=" wrong"}return `<button class="opt${c}" data-act="qans" data-i="${i}" ${L.answered?"disabled":""}>${esc(o)}</button>`}).join("")}</div>`;
+ if(L.answered){const ok=L.pick===ans;
+  h+=`<div class="fb ${ok?"ok":"no"}"><b>${ok?"Correct!":"Not quite."}</b><p>${esc(q.why)}${!ok&&q.mg?`<span class="mg">${esc(q.mg)}</span>`:ok?'<span class="mg">Marina!</span>':""}</p></div><button class="btn primary" data-act="qnext">${L.qi===n-1?"Next: speaking":"Next question"}</button>`}
+ return h+"</div>";
+}
+function qAnswer(i){const q=L.lesson.qs[L.qi];if(L.answered)return;const ans=q.t==="tf"?(q.a?0:1):q.a;L.pick=i;L.answered=true;if(i===ans)L.right++;view.innerHTML=lessonTop()+renderQuestion()}
+function matchPick(side,k){
+ const m=L.m;if(m.done.includes(k))return;
+ if(side==="l"){m.sel=k;view.innerHTML=lessonTop()+renderQuestion();return}
+ if(!m.sel)return;
+ if(m.sel===k){m.done.push(k);m.sel=null;if(m.done.length===L.lesson.qs[L.qi].keys.length&&m.mistakes.size===0)L.right++;view.innerHTML=lessonTop()+renderQuestion()}
+ else{m.mistakes.add(m.sel);S.hard[m.sel]=S.hard[m.sel]||0;L.missed.push(m.sel);save();
+  const b=view.querySelector(`[data-act="mr"][data-k="${k}"]`);if(b){b.classList.add("wrong");setTimeout(()=>b.classList.remove("wrong"),500)}}
+}
+function qNext(){L.answered=false;L.pick=null;L.m=null;L.qi++;if(L.qi>=L.lesson.qs.length){L.step=3}renderLesson()}
+function renderFinish(){
+ const l=L.lesson,q=L.right/l.qs.length,sv=L.spkIds.map(id=>SPKRES[id]).filter(v=>typeof v==="number"),s=sv.length?sv.reduce((a,b)=>a+b,0)/sv.length:null;
+ if(!L.saved){const prev=S.lessons[l.id];S.lessons[l.id]={q:Math.max(pct(q),prev?prev.q:0),s:s===null?(prev?prev.s:null):pct(s),at:today(),tries:(prev?prev.tries:0)+1};markDay();L.saved=true;save()}
+ const nx=nextLesson(),missed=[...new Set(L.missed)];
+ return `<div class="stack" style="text-align:center;align-items:center;padding-top:10px">
+  <p class="kicker">Lesson complete · Vita ny lesona</p><span class="score-ring">${pct(q)}%</span><h2>${q>=0.8?"Great work!":q>=0.5?"Good effort!":"Keep going!"}</h2>
+  <p class="muted">${L.right} of ${l.qs.length} questions correct${s!==null?` · pronunciation ${pct(s)}%`:""}</p></div>
+  <div class="stack" style="margin-top:18px">
+  ${missed.length?`<section class="panel stack tight"><h3>Saved for practice</h3><div class="chips">${missed.map(k=>`<span class="chip">${esc(W[k][0])}</span>`).join("")}</div></section>`:""}
+  ${nx?`<button class="btn primary" data-act="lesson" data-id="${nx.id}">Next lesson: ${esc(nx.title)}</button>`:""}
+  <button class="btn" data-act="home" style="width:100%;min-height:50px">Back to my course</button></div>`;
+}
+
+/* ================= REVIEW ================= */
+let R=null;
+function startReview(){const keys=shuffle(Object.keys(S.hard)).slice(0,8);R={keys,i:0,right:0,answered:false};renderReview()}
+function renderReview(){
+ window.scrollTo(0,0);
+ if(R.i>=R.keys.length){view.innerHTML=`<div class="stack" style="padding-top:12px;text-align:center;align-items:center"><p class="kicker">Practice done</p><span class="score-ring">${R.right}/${R.keys.length}</span><p class="muted">${Object.keys(S.hard).length} difficult words left. A word leaves the list after two correct answers in a row.</p></div><div style="margin-top:18px"><button class="btn primary" data-act="home">Back to my course</button></div>`;markDay();return}
+ const k=R.keys[R.i];if(!R.opts){const others=shuffle(Object.keys(W).filter(x=>x!==k)).slice(0,3);R.opts=shuffle([k,...others])}
+ view.innerHTML=`<div class="top"><button class="x" data-act="home" aria-label="Stop practice">${ICON.x}</button><div class="bar"><i style="width:${pct(R.i/R.keys.length)}%"></i></div></div>
+ <div class="stack"><p class="kicker">Difficult words · Teny sarotra</p><div class="row"><h1>${esc(W[k][0])}</h1><button class="say" data-act="sayword" data-k="${k}" aria-label="Listen">${ICON.spk}</button></div><span class="say-as">${esc(W[k][1])}</span>
+ <h3>What does it mean in Malagasy?</h3>
+ <div class="opts">${R.opts.map(o=>{let c="";if(R.answered){if(o===k)c=" right";else if(o===R.pick)c=" wrong"}return `<button class="opt${c}" data-act="rans" data-k="${o}" ${R.answered?"disabled":""}>${esc(W[o][2])}</button>`}).join("")}</div>
+ ${R.answered?`<p class="ex">${esc(W[k][5])}</p><button class="btn primary" data-act="rnext">Next</button>`:""}</div>`;
+ if(!R.answered)say(W[k][0]);
+}
+function reviewAnswer(o){if(R.answered)return;const k=R.keys[R.i];R.answered=true;R.pick=o;
+ if(o===k){R.right++;S.hard[k]=(S.hard[k]||0)+1;if(S.hard[k]>=2)delete S.hard[k]}else S.hard[k]=0;save();renderReview()}
+
+/* ================= EVENTS ================= */
+document.addEventListener("click",e=>{
+ const w=e.target.closest(".w");if(w){openWord(w.dataset.w);return}
+ const b=e.target.closest("[data-act]");if(!b)return;const a=b.dataset.act;
+ switch(a){
+  case "home":if(rec){try{rec.abort()}catch(x){}}if(TTS)speechSynthesis.cancel();home();break;
+  case "starttest":startTest();break;
+  case "tplay":say(TEST[T.i].audio,false);break;
+  case "tplayslow":say(TEST[T.i].audio,true);break;
+  case "tans":testAnswer(+b.dataset.i,b);break;
+  case "tnext":testNext();break;
+  case "lesson":openLesson(b.dataset.id);break;
+  case "playall":playLines(L.lesson.lines.map(x=>x[1]));break;
+  case "sayline":say(L.lesson.lines[+b.dataset.i][1]);hl(+b.dataset.i);break;
+  case "slow":S.slow=!S.slow;save();b.setAttribute("aria-pressed",S.slow);break;
+  case "sayword":say(W[b.dataset.k][0]);break;
+  case "reveal":{const d=view.querySelector(`[data-mean="${b.dataset.k}"]`);d.hidden=!d.hidden;b.textContent=d.hidden?"Show meaning":"Hide meaning";if(!d.hidden){S.seen[b.dataset.k]=(S.seen[b.dataset.k]||0)+1;save()}break}
+  case "lnext":L.step++;renderLesson();break;
+  case "qans":qAnswer(+b.dataset.i);break;
+  case "qnext":qNext();break;
+  case "ml":matchPick("l",b.dataset.k);break;
+  case "mr":matchPick("r",b.dataset.k);break;
+  case "hear":say(SPK[b.dataset.sid],false);break;
+  case "hearslow":say(SPK[b.dataset.sid],true);break;
+  case "mic":startMic(b.dataset.sid,b);break;
+  case "self":{const id=b.dataset.sid,box=document.getElementById(id);SPKRES[id]=b.dataset.v==="1"?"self-ok":"self-practice";box.querySelector(".spk-res").innerHTML=`<p class="muted">${b.dataset.v==="1"?"Well done. Say it two more times to remember it.":"Listen with Slow, then repeat it three times."}</p>`;break}
+  case "review":startReview();break;
+  case "rans":reviewAnswer(b.dataset.k);break;
+  case "rnext":R.i++;R.answered=false;R.opts=null;renderReview();break;
+  case "closesheet":closeSheet();break;
+  case "askreset":document.getElementById("resetBox").innerHTML=`<div class="confirm"><p><b>Delete all progress?</b> Your level, scores and word list will be removed from this phone.</p><div class="row"><button class="btn" data-act="doreset" style="border-color:var(--red);color:var(--red)">Delete progress</button><button class="btn ghost" data-act="home">Keep it</button></div></div>`;break;
+  case "doreset":S=fresh();save();home();break;
+ }
+});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet()});
+home();
+</script>
+
+</body>
+</html>

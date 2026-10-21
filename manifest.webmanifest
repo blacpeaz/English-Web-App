@@ -1,0 +1,10 @@
+{
+  "name": "Miteny English",
+  "short_name": "Miteny",
+  "description": "English course for Malagasy speakers, with Malagasy and French word help.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#F1F5F0",
+  "theme_color": "#0B6B3D",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
