@@ -20,10 +20,11 @@ A mobile web app that teaches English to a Malagasy speaker, from beginner to ad
 | Variable | Needed | What it does |
 |---|---|---|
 | `ANTHROPIC_API_KEY` | yes | Key from console.anthropic.com for the AI teacher |
+| `APP_PIN` | yes | Access PIN for the AI teacher (6+ characters). The learner types it once per phone. Wrong PINs are locked out after 10 tries per day. |
 | `AI_MODEL` | no | Default `claude-sonnet-5-5` (lessons, writing, tests) |
 | `AI_FAST_MODEL` | no | Default `claude-haiku-5-5` (speaking tips) |
 | `AI_DAILY_LIMIT` | no | AI uses per learner per day (default 25) |
-| `AI_GLOBAL_DAILY_LIMIT` | no | AI uses for the whole app per day (default 80) |
+| `AI_GLOBAL_DAILY_LIMIT` | no | AI uses for the whole app per day (default 30) |
 
 ## Files
 

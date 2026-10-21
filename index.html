@@ -697,7 +697,7 @@ function openWord(k){
   <button class="btn primary" data-act="closesheet">Close · Hidio</button></div>`;
  say(w.en);
 }
-function closeSheet(){host.innerHTML=""}
+function closeSheet(){if(PINRES)return pinDone(false);host.innerHTML=""}
 
 /* ================= HOME ================= */
 function nextLesson(){const lv=S.level||1,start=Math.min(lv,2);return ALL().find(l=>l.level>=start&&l.level<=lv&&!S.lessons[l.id])||null}
@@ -889,11 +889,33 @@ const AI_MSG={
  "ai-busy":["The AI teacher is busy. Wait a minute and try again.","Sahirana ny mpampianatra AI. Andramo indray afaka kelikely."],
  offline:["No internet connection. Connect to the internet and try again.","Tsy misy internet."],
  "too-long":["The answer was too long. Please try again.","Andramo indray."],
+ "need-pin":["The AI teacher needs the PIN. Ask the app owner for it.","Mila ny PIN ny mpampianatra AI. Angataho amin'ny tompon'ny app."],
+ "bad-pin":["That PIN is not correct.","Diso ny PIN."],
+ locked:["Too many wrong PINs today. The AI teacher is locked until tomorrow.","Diso imbetsaka ny PIN. Mihidy ny AI mandra-pahatongan'ny rahampitso."],
+ "pin-not-set":["The AI teacher is locked until the app owner sets a PIN in Netlify.","Mihidy ny AI mandra-pametraky ny tompon'ny app PIN."],
  default:["The AI teacher had a problem. Please try again.","Nisy olana. Andramo indray."]};
-const aiMsg=e=>AI_MSG[e&&e.code]||AI_MSG.default;
+/* The PIN stays on this phone only (not in the online backup). */
+const PIN_KEY="miteny-ai-pin";
+const getPin=()=>{try{return localStorage.getItem(PIN_KEY)||""}catch(e){return ""}};
+const setPin=v=>{try{v?localStorage.setItem(PIN_KEY,v):localStorage.removeItem(PIN_KEY)}catch(e){}};
+let PINRES=null;
+function askPin(wrong){return new Promise(res=>{PINRES=res;
+ host.innerHTML=`<div class="scrim" data-act="pincancel"></div><div class="sheet" role="dialog" aria-label="AI teacher PIN">
+  <h2>Unlock the AI teacher</h2><p>Type the PIN you got from the app owner. You only need to do this once on this phone.<span class="mg">Soraty ny PIN nomen'ny tompon'ny app. Indray mandeha ihany no atao amin'ity finday ity.</span></p>
+  <input id="pinBox" class="input" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="PIN" aria-label="PIN">
+  ${wrong?'<p style="color:var(--red);font-weight:700">That PIN is not correct. Try again.<span class="mg">Diso ny PIN. Andramo indray.</span></p>':""}
+  <button class="btn primary" data-act="pinok">Unlock · Sokafy</button><button class="link" data-act="pincancel" style="align-self:center">Cancel</button></div>`;
+ setTimeout(()=>{const i=document.getElementById("pinBox");if(i)i.focus()},50)})}
+function pinDone(ok){const r=PINRES;PINRES=null;if(ok){const v=(document.getElementById("pinBox")||{}).value||"";if(!v.trim()){return askPin(false).then(r)}setPin(v.trim())}host.innerHTML="";if(r)r(ok)}
 async function aiCall(task,params,onProgress){
+ if(!getPin()&&!(await askPin(false)))throw new AIError("need-pin");
+ try{return await aiCallRaw(task,params,onProgress)}
+ catch(e){if(e.code!=="bad-pin")throw e;setPin("");if(!(await askPin(true)))throw new AIError("need-pin");return await aiCallRaw(task,params,onProgress)}
+}
+const aiMsg=e=>AI_MSG[e&&e.code]||AI_MSG.default;
+async function aiCallRaw(task,params,onProgress){
  if(!navigator.onLine)throw new AIError("offline");
- let r;try{r=await fetch("/api/ai",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({code:S.code,task,params})})}catch(e){throw new AIError("offline")}
+ let r;try{r=await fetch("/api/ai",{method:"POST",headers:{"content-type":"application/json","x-app-pin":getPin()},body:JSON.stringify({code:S.code,task,params})})}catch(e){throw new AIError("offline")}
  const ct=r.headers.get("content-type")||"";
  if(!r.ok||!ct.includes("event-stream")){let j=null;try{j=await r.json()}catch(e){}throw new AIError(j&&j.error?j.error:"unavailable")}
  const left=r.headers.get("x-ai-left");if(left)AI.left=+left;
@@ -1020,6 +1042,8 @@ document.addEventListener("click",e=>{
   case "dorestore":doRestore();break;
   case "levelup":startLevelUp();break;
   case "ailesson":createAiLesson();break;
+  case "pinok":pinDone(true);break;
+  case "pincancel":pinDone(false);break;
   case "checkwrite":checkWriting();break;
   case "skipwrite":L.skipWrite=true;L.step=5;renderLesson();break;
   case "spktips":speakingTips(b.dataset.sid,b);break;
@@ -1034,7 +1058,7 @@ document.addEventListener("input",e=>{
  if(e.target.id==="pitch"||e.target.id==="rate"){const v=+e.target.value;S[e.target.id]=v;const lab=document.getElementById(e.target.id+"V");if(lab)lab.textContent=v.toFixed(2);save()}
  if(e.target.id==="writeBox"&&L)L.writeText=e.target.value});
 document.addEventListener("change",e=>{if(e.target.id==="pitch"||e.target.id==="rate")say(SAMPLE,false)});
-document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet();if(e.key==="Enter"&&e.target.id==="restoreCode")doRestore()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet();if(e.key==="Enter"&&e.target.id==="restoreCode")doRestore();if(e.key==="Enter"&&e.target.id==="pinBox")pinDone(true)});
 function selectCode(){const el=document.querySelector(".codebox");if(!el)return;const r=document.createRange();r.selectNodeContents(el);const sel=getSelection();sel.removeAllRanges();sel.addRange(r)}
 home();
 pullOnStart();

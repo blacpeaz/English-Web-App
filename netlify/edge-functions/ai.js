@@ -6,6 +6,7 @@
 //   ANTHROPIC_API_KEY  required
 //   AI_MODEL           optional, default claude-sonnet-5-5 (lessons, writing, tests)
 //   AI_FAST_MODEL      optional, default claude-haiku-5-5  (quick speaking tips)
+//   APP_PIN            required; the AI only answers requests that carry this PIN (checked in /api/usage)
 
 const CODE_RE = /^[a-z]+-[a-z]+-[a-z]+-\d{4}$/;
 const CEFR = { 1: "A1 (beginner)", 2: "A2 (elementary)", 3: "B1 (intermediate)", 4: "B2 (upper-intermediate)", 5: "C1 (advanced)" };
@@ -176,7 +177,7 @@ function build(task, p) {
 
 const LIMITS = { lesson: { fast: false, max: 8000 }, writing: { fast: false, max: 2000 }, speaking: { fast: true, max: 700 }, levelup: { fast: false, max: 3500 } };
 
-export default async (req) => {
+export default async (req, context) => {
   const key = Netlify.env.get("ANTHROPIC_API_KEY");
   if (!key) return json({ error: "no-key" }, 503);
 
@@ -198,11 +199,11 @@ export default async (req) => {
   try {
     const u = await fetch(new URL("/api/usage", req.url), {
       method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ code }),
+      headers: { "content-type": "application/json", "x-app-pin": str(req.headers.get("x-app-pin"), 64) },
+      body: JSON.stringify({ code, ip: context?.ip || "" }),
     });
     const uj = await u.json();
-    if (!uj.ok) return json({ error: uj.reason || "limit" }, 429);
+    if (!uj.ok) return json({ error: uj.reason || "limit" }, uj.reason === "bad-pin" ? 401 : 429);
     left = uj.left;
   } catch {
     return json({ error: "usage-check-failed" }, 503);
