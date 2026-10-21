@@ -28,11 +28,16 @@ A mobile web app that teaches English to a Malagasy speaker, from beginner to ad
 - **Level-up rules (Level 3+)**: 4 reading lessons (70%+), 10 of 12 grammar topics, 4 speaking sessions, 3 listening and 3 writing tasks (60%+). Level 5 ends with a 15-question **final Professional English test**.
 - **Talk at work**: a daily question to discuss in English with the manager.
 
+- **Recovery code by email**: the learner types her email and gets her recovery code (sent with Brevo). "Forgot your code?" on the restore screen emails it again. Limits: 5 emails per network and 3 per address per day.
+
 ## Setup (Netlify environment variables)
 
 | Variable | Needed | What it does |
 |---|---|---|
 | `ANTHROPIC_API_KEY` | yes | Key from console.anthropic.com for the AI teacher |
+| `BREVO_API_KEY` | for email | Brevo API key (app.brevo.com → SMTP & API → API keys) |
+| `EMAIL_FROM` | for email | Sender address verified in Brevo (e.g. your Gmail) |
+| `EMAIL_FROM_NAME` | no | Default `Miteny English` |
 | `APP_PIN` | yes | Access PIN for the AI teacher (6+ characters). The learner types it once per phone. Wrong PINs are locked out after 10 tries per day. |
 | `AI_MODEL` | no | Default `claude-sonnet-5-5` (lessons, writing, tests) |
 | `AI_FAST_MODEL` | no | Default `claude-haiku-5-5` (speaking tips) |
@@ -50,6 +55,7 @@ A mobile web app that teaches English to a Malagasy speaker, from beginner to ad
 - `manifest.webmanifest`, `icon.svg` — lets the app be added to the phone's home screen
 - `netlify/functions/progress.mjs` — online backup API at `/api/progress`
 - `netlify/edge-functions/ai.js` — AI teacher at `/api/ai` (streams Claude's answer; edge functions allow longer answers than normal functions)
+- `netlify/functions/email.mjs` — emails the recovery code at `/api/email`
 - `netlify/functions/usage.mjs` — daily AI limit counter at `/api/usage`
 - `netlify/shared/hash.mjs` — shared helpers
 - `package.json` — the storage library used by the backup function

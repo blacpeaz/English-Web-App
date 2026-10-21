@@ -666,7 +666,7 @@ const CODE_WORDS="mango river lemur rice sun moon star cloud rain tree leaf ston
 const CODE_RE=/^[a-z0-9][a-z0-9-]{5,39}$/;
 function normCode(x){return String(x||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim().toLowerCase().replace(/\s+/g,"-")}
 function makeCode(){const r=new Uint32Array(4);crypto.getRandomValues(r);return [0,1,2].map(i=>CODE_WORDS[r[i]%CODE_WORDS.length]).join("-")+"-"+String(r[3]%10000).padStart(4,"0")}
-function fresh(){return {qSeen:[],placement:null,history:[],level:null,lessons:{},hard:{},seen:{},days:[],slow:false,levelUps:[],code:makeCode(),codeSaved:false,updatedAt:0,syncedAt:0,aiLessons:[],mistakes:[],sounds:[],writing:{},voiceURI:null,pitch:1.15,rate:0.92,vocab:{},daily:null,dailyCount:6,money:{},sk:{},grammar:{},gcache:{},talks:[],wdrafts:{},certified:null}}
+function fresh(){return {qSeen:[],placement:null,history:[],level:null,lessons:{},hard:{},seen:{},days:[],slow:false,levelUps:[],code:makeCode(),codeSaved:false,updatedAt:0,syncedAt:0,aiLessons:[],mistakes:[],sounds:[],writing:{},voiceURI:null,pitch:1.15,rate:0.92,vocab:{},daily:null,dailyCount:6,money:{},email:null,sk:{},grammar:{},gcache:{},talks:[],wdrafts:{},certified:null}}
 let S;
 try{S=Object.assign(fresh(),JSON.parse(localStorage.getItem(KEY)||"null")||{})}catch(e){S=fresh()}
 if(!S.code||!CODE_RE.test(S.code))S.code=makeCode();
@@ -734,15 +734,56 @@ async function doRestore(){
 function restoreForm(){return `<div class="stack tight"><label for="restoreCode"><b>Recovery code</b><span class="mg">Kaody famerenana</span></label>
  <input id="restoreCode" class="input" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="fara-english-2026">
  ${S.placement?'<p class="muted" style="font-size:.85rem">This replaces the progress on this phone.</p>':""}
- <button class="btn primary" data-act="dorestore">Restore my progress</button><p id="restoreMsg" class="muted" aria-live="polite"></p></div>`}
-function codeCard(){if(S.codeSaved)return "";return `<section class="panel stack tight" style="border-color:var(--gold);background:var(--gold-soft)"><p class="kicker">Important · Zava-dehibe</p><h3>Write down your recovery code</h3>
- <p>If this phone is lost or changed, this code brings back all your progress.<span class="mg">Raha very na miova ny finday, ity kaody ity no hamerenana ny fandrosoanao rehetra.</span></p>
- <p class="codebox">${esc(S.code)}</p><div class="row"><button class="btn" data-act="copycode">Copy</button><button class="btn" data-act="codesaved">I wrote it down</button><button class="btn ghost" data-act="owncode" data-box="ownBox">Choose my own code</button></div><div id="ownBox"></div></section>`}
+ <button class="btn primary" data-act="dorestore">Restore my progress</button><p id="restoreMsg" class="muted" aria-live="polite"></p>
+ <button class="link" data-act="forgotform" style="align-self:flex-start">Forgot your code? Get it by email</button><div id="forgotBox"></div></div>`}
+function forgotForm(){return `<div class="stack tight"><label for="forgotEmail"><b>Your email</b><span class="mg">Ny mailakao</span></label>
+ <input id="forgotEmail" class="input" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="name@gmail.com">
+ <button class="btn primary" data-act="forgot">Email me my code</button><p id="forgotMsg" class="muted" aria-live="polite"></p></div>`}
+const EMAIL_OK=/^[^\s@]{1,64}@[^\s@]{1,190}\.[a-z]{2,}$/i;
+const EMAIL_ERR={"bad-email":"That email address does not look right. Check it and try again.","no-backup":"Your progress is not backed up yet. Connect to the internet, wait a moment and try again.","too-many":"Too many emails today. Try again tomorrow.","not-set-up":"Email is not switched on yet. The app owner needs to add the email settings in Netlify.","send-failed":"The email could not be sent. Check the address and try again."};
+/* Link an email to the recovery code and send the code to it. */
+async function sendCodeEmail(email,msgEl,quiet){
+ email=String(email||"").trim().toLowerCase();
+ const say_=t=>{if(msgEl)msgEl.textContent=t};
+ if(!EMAIL_OK.test(email)){say_(EMAIL_ERR["bad-email"]);return false}
+ if(!navigator.onLine){say_("Connect to the internet to send the email.");return false}
+ say_("Sending…");
+ try{
+  await pushNow();
+  const r=await fetch("/api/email",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"save",code:S.code,email})});
+  const j=await r.json().catch(()=>null);
+  if(!j){say_("Email works only in the app at miteny-english.netlify.app.");return false}
+  if(!j.ok){say_(EMAIL_ERR[j.reason]||"The email could not be sent. Try again.");return false}
+  S.email=email;S.codeSaved=true;save();
+  if(!quiet){FLASH={title:"Code sent by email",text:`We sent your recovery code to ${email}. If you don't see it in a few minutes, check your Spam or Promotions folder and mark it “Not spam”.`};home()}
+  return true;
+ }catch(e){say_("Could not connect. Check the internet connection and try again.");return false}
+}
+async function forgotCode(){
+ const email=document.getElementById("forgotEmail").value.trim().toLowerCase(),msg=document.getElementById("forgotMsg");
+ if(!EMAIL_OK.test(email)){msg.textContent=EMAIL_ERR["bad-email"];return}
+ msg.textContent="Sending…";
+ try{
+  const r=await fetch("/api/email",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"forgot",email})});
+  const j=await r.json().catch(()=>null);
+  if(!j){msg.textContent="Email works only in the app at miteny-english.netlify.app.";return}
+  msg.textContent=j.ok?"If this email is linked to a backup, your code is on its way. Check your inbox and Spam folder, then type the code above.":(EMAIL_ERR[j.reason]||"Something went wrong. Try again.");
+ }catch(e){msg.textContent="Could not connect. Check the internet connection and try again."}
+}
+function emailForm(){return `<div class="stack tight"><label for="emailBox"><b>Your email</b><span class="mg">Ny mailakao</span></label>
+ <input id="emailBox" class="input" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="name@gmail.com" value="${esc(S.email||"")}">
+ <button class="btn primary" data-act="sendcode">Send my code to my email</button><p id="emailMsg" class="muted" aria-live="polite"></p></div>`}
+/* Until an email is saved, Today asks for it so the recovery code can always be sent again. */
+function codeCard(){if(S.email)return "";return `<section class="panel stack tight" style="border-color:var(--gold);background:var(--gold-soft)"><p class="kicker">Important · Zava-dehibe</p><h3>Save your recovery code by email</h3>
+ <p>If this phone is lost or changed, this code brings back all your progress. Type your email and we send the code to you.<span class="mg">Raha very na miova ny finday, ity kaody ity no hamerenana ny fandrosoanao. Soraty ny mailakao dia halefanay aminao ny kaody.</span></p>
+ <p class="codebox">${esc(S.code)}</p>${emailForm()}
+ <div class="row"><button class="btn ghost" data-act="copycode">Copy code</button><button class="btn ghost" data-act="owncode" data-box="ownBox">Choose my own code first</button></div><div id="ownBox"></div></section>`}
 function backupPanel(){return `<section class="panel stack tight"><div class="row" style="justify-content:space-between"><h3>Online backup</h3><span class="sync${SYNC.state==="ok"?" ok":""}" id="syncStatus">${syncText()}</span></div>
  <p class="muted" style="font-size:.9rem">Progress backs up by itself after each lesson. Recovery code: <b class="codebox inline">${esc(S.code)}</b></p>
- <div class="row"><button class="btn ghost" data-act="copycode">Copy code</button><button class="btn ghost" data-act="owncode">Choose my own code</button><button class="btn ghost" data-act="showrestore">Use another code</button></div><div id="restoreBox"></div></section>`}
+ <p class="muted" style="font-size:.9rem">${S.email?`Code emailed to <b>${esc(S.email)}</b>.`:"No email saved yet."}</p>
+ <div class="row">${S.email?'<button class="btn ghost" data-act="resendcode">Email my code again</button>':""}<button class="btn ghost" data-act="changeemail">${S.email?"Change email":"Add email"}</button><button class="btn ghost" data-act="copycode">Copy code</button><button class="btn ghost" data-act="owncode">Choose my own code</button><button class="btn ghost" data-act="showrestore">Use another code</button></div><div id="restoreBox"></div></section>`}
 let FLASH="";
-function flashBlock(){if(!FLASH)return "";const f=FLASH;FLASH="";return `<div class="fb ok"><b>Code changed</b><p>${esc(f)}</p><p class="codebox" style="margin-top:6px">${esc(S.code)}</p></div>`}
+function flashBlock(){if(!FLASH)return "";const f=typeof FLASH==="string"?{title:"Code changed",text:FLASH}:FLASH;FLASH="";return `<div class="fb ok"><b>${esc(f.title)}</b><p>${esc(f.text)}</p><p class="codebox" style="margin-top:6px">${esc(S.code)}</p></div>`}
 function ownCodeForm(){return `<div class="stack tight"><label for="ownCode"><b>Your own recovery code</b><span class="mg">Kaody famerenana safidinao</span></label>
  <input id="ownCode" class="input" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="fara-english-2026">
  <p class="muted" style="font-size:.85rem">Use at least 6 letters or numbers; hyphens are allowed. Add some numbers so nobody can guess it.<span class="mg">Litera na isa 6 farafahakeliny. Ampio isa mba tsy ho fantatry ny hafa.</span></p>
@@ -763,7 +804,9 @@ async function saveOwnCode(){
   if(!r.ok)throw 0;
   S.code=code;S.codeSaved=true;S.updatedAt=updatedAt;S.syncedAt=Date.now();persistLocal();setSync("ok");
   fetch(API+"?code="+encodeURIComponent(old),{method:"DELETE"}).catch(()=>{});
-  FLASH="Your recovery code is now the one below. Write it down and keep it safe.";home();
+  if(S.email){const sent=await sendCodeEmail(S.email,null,true);FLASH={title:"Code changed",text:sent?`Your new recovery code is below. We also sent it to ${S.email}.`:"Your new recovery code is below. Write it down; the email could not be sent right now."}}
+  else FLASH="Your recovery code is now the one below. Write it down and keep it safe.";
+  home();
  }catch(e){msg.textContent="Could not save. Check the internet connection and try again."}
 }
 
@@ -1447,6 +1490,11 @@ document.addEventListener("click",e=>{
   case "codesaved":S.codeSaved=true;save();home();break;
   case "owncode":{const box=document.getElementById(b.dataset.box||"restoreBox");box.innerHTML=ownCodeForm();box.querySelector("input").focus();break}
   case "saveowncode":saveOwnCode();break;
+  case "sendcode":sendCodeEmail(document.getElementById("emailBox").value,document.getElementById("emailMsg"));break;
+  case "resendcode":{const box=document.getElementById("restoreBox");box.innerHTML='<p id="emailMsg" class="muted" aria-live="polite"></p>';sendCodeEmail(S.email,document.getElementById("emailMsg"));break}
+  case "changeemail":{const box=document.getElementById("restoreBox");box.innerHTML=emailForm();box.querySelector("input").focus();break}
+  case "forgotform":{const box=document.getElementById("forgotBox");box.innerHTML=forgotForm();box.querySelector("input").focus();break}
+  case "forgot":forgotCode();break;
   case "daily":startDaily();break;
   case "dcount":S.dailyCount=+b.dataset.n;save();dailyIntro();break;
   case "dstart":beginDaily();break;
@@ -1490,7 +1538,7 @@ document.addEventListener("input",e=>{
  if(e.target.id==="writeBox"&&L)L.writeText=e.target.value;
  if(e.target.id==="sentBox"&&S.daily){const k=S.daily.keys[S.daily.wi];if(k){S.daily.sent[k]=Object.assign(S.daily.sent[k]||{tries:0},{text:e.target.value});persistLocal()}}});
 document.addEventListener("change",e=>{if(e.target.id==="pitch"||e.target.id==="rate")say(SAMPLE,false)});
-document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet();if(e.key==="Enter"&&e.target.id==="restoreCode")doRestore();if(e.key==="Enter"&&e.target.id==="pinBox")pinDone(true);if(e.key==="Enter"&&e.target.id==="ownCode")saveOwnCode()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet();if(e.key==="Enter"&&e.target.id==="restoreCode")doRestore();if(e.key==="Enter"&&e.target.id==="pinBox")pinDone(true);if(e.key==="Enter"&&e.target.id==="ownCode")saveOwnCode();if(e.key==="Enter"&&e.target.id==="emailBox")sendCodeEmail(e.target.value,document.getElementById("emailMsg"));if(e.key==="Enter"&&e.target.id==="forgotEmail")forgotCode()});
 function selectCode(){const el=document.querySelector(".codebox");if(!el)return;const r=document.createRange();r.selectNodeContents(el);const sel=getSelection();sel.removeAllRanges();sel.addRange(r)}
 /* Show the tab bar only on the four tab pages, never inside lessons or exercises. */
 const tabbar=document.getElementById("tabbar");
