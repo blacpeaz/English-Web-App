@@ -215,7 +215,11 @@ const SB_UNITS = [
 ];
 const SB_STAGES = { 1: "Basics · Fototra", 2: "Building up · Fanitarana", 3: "Professional · Matihanina" };
 const SB_NAMES = /^(I|Fara|Toamasina|Antananarivo|Mahajanga|Antsirabe|Sunday|Monday|Saturday|Fridays)$/;
-const sbScore = (id) => (S.sb && S.sb[id] ? S.sb[id].score : null);
+/* From Level 3, every unit uses the harder set (its own progress, saved as unit id + "h"). */
+function sbHardOn() { return (S.level || 1) >= 3; }
+function sbKey(id) { return sbHardOn() && SB_HARD[id] ? id + "h" : id; }
+function sbUnit(id) { const base = SB_UNITS.find((x) => x.id === id); if (!base) return null; return sbHardOn() && SB_HARD[id] ? Object.assign({}, base, SB_HARD[id], { hard: true }) : base; }
+const sbScore = (id) => { const k = sbKey(id); return S.sb && S.sb[k] ? S.sb[k].score : null; };
 const sbDone = (id) => (sbScore(id) ?? 0) >= 70;
 const sbNext = () => SB_UNITS.find((u) => !sbDone(u.id)) || null;
 let SB = null;
@@ -233,7 +237,7 @@ function sbCard() {
   const done = SB_UNITS.filter((u) => sbDone(u.id)).length, nx = sbNext();
   return `<section class="panel stack tight" style="border-color:var(--green)"><p class="kicker">Sentence Builder · Fanorenana fehezanteny</p>
    <h3>${nx ? `Unit ${SB_UNITS.indexOf(nx) + 1}: ${esc(nx.title)}` : "All 16 units done ✓"}</h3>
-   <p class="muted" style="font-size:.92rem">Learn how English sentences are built, step by step: word order, questions, joining ideas, clear professional sentences. ${done}/16 done.<span class="mg">Ianaro ny fanorenana fehezanteny anglisy, dingana tsikelikely.</span></p>
+   <p class="muted" style="font-size:.92rem">Learn how English sentences are built, step by step: word order, questions, joining ideas, clear professional sentences. ${done}/16 done${sbHardOn() ? " · harder Level 3+ set" : ""}.<span class="mg">Ianaro ny fanorenana fehezanteny anglisy, dingana tsikelikely.</span></p>
    ${nx ? `<button class="btn primary" data-act="sb-open" data-id="${nx.id}">${sbScore(nx.id) !== null ? "Try again" : "Start"}</button>` : ""}
    <button class="link" data-act="sb-home" style="align-self:flex-start">See all units</button></section>`;
 }
@@ -244,11 +248,11 @@ function sbHome() {
     h += `<section class="stack tight"><p class="kicker">${SB_STAGES[st]}</p>${SB_UNITS.filter((u) => u.stage === st).map((u) => { const i = SB_UNITS.indexOf(u), sc = sbScore(u.id); return `<button class="les${sbDone(u.id) ? " done" : ""}" data-act="sb-open" data-id="${u.id}"><span class="n">${sbDone(u.id) ? "✓" : i + 1}</span><span class="t"><b>${esc(u.title)}</b><small>${esc(u.pattern)}</small></span>${sc !== null ? `<span class="s">${sc}%</span>` : ""}</button>`; }).join("")}</section>`;
   });
   view.innerHTML = `<div class="top"><button class="x" data-act="home" aria-label="Back">${ICON.x}</button><p class="kicker" style="margin:0">Sentence Builder</p></div><div class="stack">
-   <div><h1>Sentence Builder</h1><p class="muted">16 short units. Each one teaches one way English sentences are built, then you practise it. 70% = done.<span class="mg">Singa 16. Samy mampianatra fomba iray hanorenana fehezanteny izy, avy eo manao fanazarana ianao.</span></p></div>${h}</div>`;
+   <div><h1>Sentence Builder</h1><p class="muted">16 short units. Each one teaches one way English sentences are built, then you practise it. 70% = done.${sbHardOn() ? " You are on the harder Level 3+ set: longer sentences, two mistakes to fix, three sentences to join, and Malagasy to English." : ""}<span class="mg">Singa 16. Samy mampianatra fomba iray hanorenana fehezanteny izy, avy eo manao fanazarana ianao.</span></p></div>${h}</div>`;
 }
 function sbOpen(id) {
-  const u = SB_UNITS.find((x) => x.id === id); if (!u) return;
-  SB = { u, step: 0, i: 0, right: 0, answered: false, ok: false, typed: "", chips: null, built: [], own: { text: "", res: null, err: null, tries: 0 } };
+  const u = sbUnit(id); if (!u) return;
+  SB = { u, key: sbKey(id), step: 0, i: 0, right: 0, answered: false, ok: false, typed: "", chips: null, built: [], own: { text: "", res: null, err: null, tries: 0 } };
   sbRender();
 }
 function sbExerciseHTML(e) {
@@ -258,13 +262,13 @@ function sbExerciseHTML(e) {
   if (e.t === "order") {
     if (!SB.chips) SB.chips = sbChips(e.a);
     const c = SB.chips, used = new Set(SB.built);
-    return `<h2>Put the words in the right order.</h2><span class="mg">Alaharo tsara ireo teny ireo.</span>
+    return `${e.mg ? `<h2>Say it in English: put the words in order.</h2><p class="wrongbox" style="border-color:var(--gold);background:var(--gold-soft);font-style:italic">${esc(e.mg)}</p><span class="mg">Adikao amin'ny teny anglisy: alaharo ireo teny ireo.</span>` : `<h2>Put the words in the right order.</h2><span class="mg">Alaharo tsara ireo teny ireo.</span>`}
      <div class="answerline" aria-label="Your sentence">${SB.built.map((wi, p) => `<button class="wchip on" data-act="sb-unpick" data-p="${p}" ${SB.answered ? "disabled" : ""}>${esc(c.words[wi])}</button>`).join("")}${SB.built.length ? `<span class="endmark">${esc(c.end)}</span>` : '<span class="muted" style="font-size:.9rem">Tap the words below</span>'}</div>
      <div class="wpool">${c.order.map((wi) => `<button class="wchip" data-act="sb-pick" data-w="${wi}" ${used.has(wi) || SB.answered ? "disabled" : ""}>${esc(c.words[wi])}</button>`).join("")}</div>
      ${SB.answered ? "" : `<div class="row"><button class="btn primary" data-act="sb-checkorder" ${SB.built.length === c.words.length ? "" : "disabled"} style="flex:1">Check · Hamarino</button><button class="btn ghost" data-act="sb-reset">Start again</button></div>`}`;
   }
   const lead = e.t === "fix" ? `<h2>Correct this sentence.</h2><span class="mg">Ahitsio ity fehezanteny ity.</span><p class="wrongbox">${esc(e.q)}</p>`
-    : `<h2>Join into one${e.q.length === 1 ? " polite" : ""} sentence using <b>${esc(e.use)}</b>.</h2><span class="mg">Ataovy fehezanteny iray.</span>${e.q.map((x) => `<p class="wrongbox" style="border-color:var(--line);background:var(--surface)">${esc(x)}</p>`).join("")}`;
+    : `<h2>${e.q.length === 1 ? "Rewrite politely" : e.q.length === 3 ? "Join these three sentences" : "Join into one sentence"} using <b>${esc(e.use)}</b>.</h2><span class="mg">Ataovy fehezanteny iray.</span>${e.q.map((x) => `<p class="wrongbox" style="border-color:var(--line);background:var(--surface)">${esc(x)}</p>`).join("")}`;
   return `${lead}<textarea id="sbAns" class="textarea" style="min-height:80px" autocapitalize="sentences" ${SB.answered ? "readonly" : ""} placeholder="Write the sentence…">${esc(SB.typed)}</textarea>
    ${SB.answered ? "" : '<button class="btn primary" data-act="sb-checktype">Check · Hamarino</button>'}`;
 }
@@ -273,9 +277,10 @@ function sbRender() {
   const u = SB.u, steps = ["Learn", "Practise", "Your turn", "Finish"];
   let h = `<div class="top"><button class="x" data-act="sb-home" aria-label="Back">${ICON.x}</button><div class="steps">${steps.map((s, i) => `<span class="${i < SB.step ? "done" : i === SB.step ? "now" : ""}">${s}</span>`).join("")}</div></div>`;
   if (SB.step === 0) {
-    h += `<div class="stack"><div><p class="kicker">Unit ${SB_UNITS.indexOf(u) + 1} of 16 · ${SB_STAGES[u.stage]}</p><h1 style="margin-top:6px">${esc(u.title)}</h1></div>
+    h += `<div class="stack"><div><p class="kicker">Unit ${SB_UNITS.findIndex((x) => x.id === u.id) + 1} of 16 · ${SB_STAGES[u.stage]}${u.hard ? " · Level 3+" : ""}</p><h1 style="margin-top:6px">${esc(u.title)}</h1></div>
      <p class="pattern">${esc(u.pattern)}</p>
      <section class="panel stack tight"><p>${esc(u.en)}</p><span class="mg">${esc(u.mg)}</span></section>
+     ${u.plus ? `<section class="panel stack tight" style="border-color:var(--gold)"><p class="kicker">At your level · Amin'ny haavonao</p><p>${esc(u.plus)}</p><span class="mg">${esc(u.plusMg)}</span></section>` : ""}
      <section class="stack tight"><p class="kicker">Examples · Ohatra</p><ul class="exs">${u.examples.map((x, i) => `<li><button class="say" data-act="sb-say" data-i="${i}" aria-label="Listen">${ICON.spk}</button><span>${esc(x)}</span></li>`).join("")}</ul></section>
      <button class="btn primary" data-act="sb-next">Practise · Hanazatra (${u.ex.length} exercises)</button></div>`;
   } else if (SB.step === 1) {
@@ -298,7 +303,7 @@ function sbRender() {
      <button class="${o.res && (o.res.correct || o.tries >= 3) ? "btn primary" : "link"}" data-act="sb-next" ${o.res && (o.res.correct || o.tries >= 3) ? "" : 'style="align-self:center"'}>${o.res ? "Finish · Vita" : "Skip and finish"}</button></div>`;
   } else {
     const score = Math.round(100 * SB.right / u.ex.length);
-    if (!SB.saved) { S.sb = S.sb || {}; const prev = S.sb[u.id]; S.sb[u.id] = { score: Math.max(score, prev ? prev.score : 0), at: today(), tries: (prev ? prev.tries : 0) + 1 }; markDay(); save(); SB.saved = true; }
+    if (!SB.saved) { S.sb = S.sb || {}; const prev = S.sb[SB.key]; S.sb[SB.key] = { score: Math.max(score, prev ? prev.score : 0), at: today(), tries: (prev ? prev.tries : 0) + 1 }; markDay(); save(); SB.saved = true; }
     const nx = sbNext();
     h += `<div class="stack" style="text-align:center;align-items:center"><p class="kicker">${esc(u.title)}</p><span class="score-ring">${score}%</span><h2>${score >= 70 ? "Unit done ✓" : "Not done yet"}</h2>
      <p class="muted">${SB.right}/${u.ex.length} exercises correct${score < 70 ? ". Read the explanation again and repeat to reach 70%." : ""}<span class="mg">${score >= 70 ? "Vita!" : "Avereno mba hahatratra 70%."}</span></p></div>
@@ -341,3 +346,218 @@ document.addEventListener("click", (ev) => {
   }
 });
 document.addEventListener("input", (ev) => { if (ev.target.id === "sbAns" && SB) SB.typed = ev.target.value; if (ev.target.id === "sbOwn" && SB) SB.own.text = ev.target.value; });
+
+/* ================= HARDER SET (Level 3 and up) =================
+   Same 16 units, with an extra point for intermediate learners, 8 harder exercises
+   (longer sentences, two mistakes, three sentences to join, Malagasy → English word order)
+   and a longer final task. Progress is kept separately (unit id + "h"). */
+const SB_HARD = {
+  sb01: { plus: "At your level, subjects and objects get longer, but the order stays the same. The whole subject group comes first: The new driver from Toamasina | delivered | forty bales | to our warehouse | yesterday.",
+    plusMg: "Na lava aza ny mpanao sy ny fameno, tsy miova ny filaharana: ny vondron'ny mpanao manontolo no voalohany.",
+    ex: [
+      { t: "order", a: "The new driver from Toamasina delivered forty bales to our warehouse yesterday.", alt: ["Yesterday the new driver from Toamasina delivered forty bales to our warehouse."] },
+      { t: "order", a: "Every Monday, our manager checks the stock and sends a report to the director.", alt: ["Our manager checks the stock every Monday and sends a report to the director."] },
+      { t: "fix", q: "Arrived yesterday the containers from Korea at the port.", a: ["The containers from Korea arrived at the port yesterday.", "Yesterday the containers from Korea arrived at the port.", "Yesterday, the containers from Korea arrived at the port."] },
+      { t: "fix", q: "Very important is this order for our company.", a: ["This order is very important for our company."] },
+      { t: "mc", q: "Which sentence is correct?", o: ["Need the customers their furniture before Friday.", "The customers need their furniture before Friday.", "The customers their furniture need before Friday.", "Their furniture the customers need before Friday."], a: 1 },
+      { t: "order", mg: "Mamaky ny tatitra isa-maraina ny talen'ny orinasa.", a: "The company director reads the report every morning.", alt: ["Every morning the company director reads the report."] },
+      { t: "fix", q: "Sold our shop last month more than two hundred jackets.", a: ["Our shop sold more than two hundred jackets last month.", "Last month our shop sold more than two hundred jackets.", "Last month, our shop sold more than two hundred jackets."] },
+      { t: "order", mg: "Mividy entana amin'ny mpamatsy any Korea izahay.", a: "We buy goods from a supplier in Korea." },
+    ],
+    task: "Write two sentences about your company's work. Each one must have who + does what + what + where or when." },
+  sb02: { plus: "With several describing words, the usual order is opinion – size – age – colour – material + noun: a nice big old red wooden table. A noun used as a describing word stays singular: a shoe shop, a two-hour meeting, a ten-kilo bag.",
+    plusMg: "Raha maro ny mpamaritra: hevitra – habe – taona – loko – akora + anarana. Ny anarana ampiasaina ho mpamaritra dia tsy asiana -s: a shoe shop, a two-hour meeting.",
+    ex: [
+      { t: "order", a: "We sold three large wooden tables to a new customer." },
+      { t: "fix", q: "We need two trucks bigs for the deliveries news.", a: ["We need two big trucks for the new deliveries."] },
+      { t: "fix", q: "We had a two-hours meeting with the supplier.", a: ["We had a two-hour meeting with the supplier."] },
+      { t: "mc", q: "Choose the natural order.", o: ["a cotton white new shirt", "a new white cotton shirt", "a white new cotton shirt", "a cotton new white shirt"], a: 1 },
+      { t: "fix", q: "She works in a shop of shoes in Analakely.", a: ["She works in a shoe shop in Analakely."] },
+      { t: "order", mg: "Nividy fiara kely mena izy.", a: "She bought a small red car." },
+      { t: "fix", q: "The customers was very happies with the cheaps prices.", a: ["The customers were very happy with the cheap prices."] },
+      { t: "mc", q: "Which is correct?", o: ["a ten-kilos bag", "a ten-kilo bag", "a ten kilos's bag", "a bag ten-kilo"], a: 1 },
+    ],
+    task: "Describe a product you sell in two sentences, using at least three describing words in the right order." },
+  sb03: { plus: "Some nouns have no plural and no a/an: information, advice, furniture, equipment, money, luggage. Use some, much or a lot of with them. For things in general, use no article: Life is expensive. Rice is our main food.",
+    plusMg: "Misy anarana tsy asiana -s ary tsy asiana a/an: information, advice, furniture, equipment, money. Ampiasao ny some, much, a lot of. Ho an'ny zavatra amin'ny ankapobeny, tsy misy article: Life is expensive.",
+    ex: [
+      { t: "fix", q: "Can you give me an advice about the furnitures?", a: ["Can you give me some advice about the furniture?", "Can you give me advice about the furniture?", "Can you give me a piece of advice about the furniture?"] },
+      { t: "mc", q: "We don't have ___ information about the new supplier.", o: ["many", "much", "a", "an"], a: 1 },
+      { t: "fix", q: "The life is expensive in Antananarivo.", a: ["Life is expensive in Antananarivo."] },
+      { t: "fix", q: "We received new equipments yesterday.", a: ["We received new equipment yesterday."] },
+      { t: "mc", q: "___ customers who complained yesterday came back today.", o: ["A", "The", "(nothing)"], a: 1 },
+      { t: "fix", q: "She is engineer and her husband is a accountant.", a: ["She is an engineer and her husband is an accountant.", "She is an engineer, and her husband is an accountant."] },
+      { t: "order", a: "The money that we received last week is in the bank." },
+      { t: "mc", q: "Which sentence is correct?", o: ["The rice is the most important food in Madagascar.", "Rice is the most important food in Madagascar.", "A rice is the most important food in Madagascar."], a: 1 },
+    ],
+    task: "Write two sentences about your work using these words correctly: information, money, the, a or an." },
+  sb04: { plus: "The full order is who + does + what + how + where + when. Words saying how (well, quickly, carefully) go after the object, never between the verb and the object: He speaks English very well, not He speaks very well English.",
+    plusMg: "Ny filaharana feno: iza + manao + inona + ahoana + aiza + rahoviana. Ny teny milaza ny fomba (well, quickly) dia aorian'ny fameno: He speaks English very well.",
+    ex: [
+      { t: "order", a: "The workers loaded the truck quickly at the warehouse this morning.", alt: ["This morning the workers loaded the truck quickly at the warehouse.", "The workers quickly loaded the truck at the warehouse this morning."] },
+      { t: "fix", q: "We every year in December our prices increase.", a: ["We increase our prices every year in December.", "Every year in December, we increase our prices.", "Every year in December we increase our prices."] },
+      { t: "fix", q: "He speaks very well English.", a: ["He speaks English very well."] },
+      { t: "mc", q: "Choose the best sentence.", o: ["I yesterday met the supplier at the airport.", "I met yesterday the supplier at the airport.", "I met the supplier at the airport yesterday.", "At the airport I met yesterday the supplier."], a: 2 },
+      { t: "order", mg: "Nandoa ny faktiora tany amin'ny banky omaly hariva aho.", a: "I paid the invoice at the bank yesterday evening." },
+      { t: "fix", q: "They carefully at the port checked the containers.", a: ["They checked the containers carefully at the port.", "They carefully checked the containers at the port."] },
+      { t: "order", a: "Our team usually works very hard at the end of the month." },
+      { t: "fix", q: "She drives every day her car to work.", a: ["She drives her car to work every day.", "Every day she drives her car to work.", "Every day, she drives her car to work."] },
+    ],
+    task: "Write two sentences about your week: who + does what + how + where + when." },
+  sb05: { plus: "When the sentence has have, be, can, will or should, move that word before the person to make a question: Have you finished? Can she come? Is the shop open? Never add do to these: not Does she can come?",
+    plusMg: "Raha misy have, be, can, will na should, afindrao eo alohan'ny mpanao io teny io: Have you finished? Can she come? Aza ampiana do: tsy hoe Does she can come?",
+    ex: [
+      { t: "fix", q: "You have finished the report?", a: ["Have you finished the report?"] },
+      { t: "fix", q: "Does the supplier can deliver on Monday?", a: ["Can the supplier deliver on Monday?"] },
+      { t: "fix", q: "Are you agree with the new prices?", a: ["Do you agree with the new prices?"] },
+      { t: "order", a: "Have the new bales from Korea arrived yet?" },
+      { t: "mc", q: "___ they working on the order right now?", o: ["Do", "Are", "Have", "Does"], a: 1 },
+      { t: "fix", q: "Did the driver arrived on time this morning?", a: ["Did the driver arrive on time this morning?"] },
+      { t: "order", mg: "Efa nandoa ny vola ve ny mpanjifa?", a: "Has the customer paid the money?" },
+      { t: "mc", q: "Which question is correct?", o: ["Should we to call the client?", "Do we should call the client?", "Should we call the client?", "We should call the client?"], a: 2 },
+    ],
+    task: "Write three yes/no questions for a supplier, starting with Have, Can and Did." },
+  sb06: { plus: "Use only one negative word in a sentence: I didn't see anything or I saw nothing, never I didn't see nothing. With the present perfect, use not … yet: The truck hasn't arrived yet. After can't, won't and didn't, use the plain verb.",
+    plusMg: "Teny fandavana iray ihany isaky ny fehezanteny: I didn't see anything na I saw nothing. Amin'ny present perfect: hasn't … yet. Aorian'ny can't, won't, didn't: matoanteny tsotra.",
+    ex: [
+      { t: "fix", q: "I haven't never seen this product.", a: ["I have never seen this product.", "I haven't ever seen this product."] },
+      { t: "fix", q: "Nobody don't want to work on Sunday.", a: ["Nobody wants to work on Sunday."] },
+      { t: "fix", q: "We didn't sold nothing yesterday.", a: ["We didn't sell anything yesterday.", "We sold nothing yesterday."] },
+      { t: "mc", q: "The supplier ___ replied to my email yet.", o: ["didn't", "hasn't", "doesn't", "isn't"], a: 1 },
+      { t: "fix", q: "She can't to come tomorrow.", a: ["She can't come tomorrow."] },
+      { t: "order", a: "We won't receive the new stock until next month." },
+      { t: "fix", q: "There isn't no money in the cash box.", a: ["There isn't any money in the cash box.", "There is no money in the cash box."] },
+      { t: "order", mg: "Tsy mbola tonga ny kamiao.", a: "The truck hasn't arrived yet." },
+    ],
+    task: "Write three sentences about problems at work: one with hasn't … yet, one with didn't and one with won't." },
+  sb07: { plus: "When the question word is the subject, there is no do/does/did: Who called you? (someone called you). But: Who did you call? (you called someone). A preposition goes at the end: Who did you speak to? What is it for?",
+    plusMg: "Raha ny teny fanontaniana no mpanao, tsy misy do/does/did: Who called you? Fa: Who did you call? Ny mpampitohy (to, for, with) dia eo amin'ny farany: Who did you speak to?",
+    ex: [
+      { t: "fix", q: "Who did call you this morning?", a: ["Who called you this morning?"] },
+      { t: "fix", q: "What means this word?", a: ["What does this word mean?"] },
+      { t: "order", a: "Who did you speak to at the bank?" },
+      { t: "mc", q: "How long ___ for this company?", o: ["are you working", "have you worked", "you have worked", "do you work"], a: 1 },
+      { t: "fix", q: "Why you didn't call the client?", a: ["Why didn't you call the client?"] },
+      { t: "fix", q: "How much cost these shoes?", a: ["How much do these shoes cost?", "How much are these shoes?"] },
+      { t: "mc", q: "Which question asks who did the calling?", o: ["Who did the manager call?", "Who called the manager?", "Who the manager called?"], a: 1 },
+      { t: "order", mg: "Rahoviana no halefa ny entana?", a: "When will the goods be sent?" },
+    ],
+    task: "Write three questions you could ask a client: one with Who, one with How long and one with Why." },
+  sb08: { plus: "Also useful at your level: It is + adjective + to … (It is important to check every bale), There has been / There will be for the past and future, and It takes + time + to … (It takes three days to get there).",
+    plusMg: "Ampiasaina koa: It is important to …; There has been / There will be (lasa sy ho avy); It takes + fotoana + to … (It takes three days to get there).",
+    ex: [
+      { t: "fix", q: "Is important to check every bale.", a: ["It is important to check every bale."] },
+      { t: "fix", q: "Will be a meeting tomorrow at nine.", a: ["There will be a meeting tomorrow at nine."] },
+      { t: "fix", q: "Takes three days to get the goods from the port.", a: ["It takes three days to get the goods from the port."] },
+      { t: "mc", q: "___ been a problem with the delivery.", o: ["It has", "There has", "There have", "It have"], a: 1 },
+      { t: "order", a: "It is not easy to find a reliable supplier." },
+      { t: "fix", q: "Have been many problems with this machine since January.", a: ["There have been many problems with this machine since January."] },
+      { t: "mc", q: "___ too late to call the bank now.", o: ["There is", "It is", "Is", "It has"], a: 1 },
+      { t: "order", mg: "Sarotra ny mahita mpiasa mahay.", a: "It is difficult to find skilled workers." },
+    ],
+    task: "Write two sentences about your workplace: one starting with It is important to … and one with There has been or There will be." },
+  sb09: { plus: "With helper verbs (have, be, can, will), the frequency word goes after the first helper: I have always lived here. She is still working. We can never find it. Already goes before the main verb: She has already finished.",
+    plusMg: "Raha misy matoanteny mpanampy (have, be, can), aorian'ny mpanampy voalohany ny teny toy ny always, still, never: I have always lived here. She is still working.",
+    ex: [
+      { t: "fix", q: "We have always to check the stock.", a: ["We always have to check the stock."] },
+      { t: "fix", q: "She has finished already the report.", a: ["She has already finished the report."] },
+      { t: "fix", q: "He can't never come on time.", a: ["He can never come on time.", "He can't ever come on time."] },
+      { t: "order", a: "The supplier has never sent us the wrong products." },
+      { t: "mc", q: "We ___ go to the bank on Sundays.", o: ["hardly ever", "hardly never", "ever hardly", "never hardly"], a: 0 },
+      { t: "fix", q: "I still am waiting for the payment.", a: ["I am still waiting for the payment."] },
+      { t: "fix", q: "Usually is the warehouse busy on Mondays.", a: ["The warehouse is usually busy on Mondays.", "Usually the warehouse is busy on Mondays.", "Usually, the warehouse is busy on Mondays."] },
+      { t: "order", a: "Our customers don't usually pay by card." },
+    ],
+    task: "Write about your work habits in two or three sentences, using always, still and hardly ever." },
+  sb10: { plus: "Don't chain many so's and don't start sentences with And. Join two ideas well, then start a new sentence. In formal writing, use therefore or as a result instead of so.",
+    plusMg: "Aza ampiasaina imbetsaka ny so, ary aza manomboka fehezanteny amin'ny And. Amin'ny fanoratana ofisialy, ampiasao ny therefore na as a result.",
+    ex: [
+      { t: "combine", q: ["The prices are low.", "The quality is good.", "Many customers buy from us."], use: "and … so", a: ["The prices are low and the quality is good, so many customers buy from us."] },
+      { t: "combine", q: ["We ordered 200 bales.", "Only 150 arrived.", "We called the supplier."], use: "but … so", a: ["We ordered 200 bales, but only 150 arrived, so we called the supplier."] },
+      { t: "mc", q: "The road was blocked; ___, the delivery was late.", o: ["therefore", "but", "and", "because"], a: 0 },
+      { t: "fix", q: "The truck was old so it was cheap, so we bought it, so we saved money.", a: ["The truck was old and cheap, so we bought it and saved money."] },
+      { t: "mc", q: "Which is better in writing?", o: ["I like the new shop. And I like the staff too.", "I like the new shop and the staff.", "And I like the new shop and the staff."], a: 1 },
+      { t: "order", a: "Sales were low in June, but they improved in July." },
+      { t: "mc", q: "Which sentence is punctuated correctly?", o: ["It rained all day so, the market was quiet.", "It rained all day, so the market was quiet.", "It rained all day so the market, was quiet."], a: 1 },
+      { t: "combine", q: ["She speaks Malagasy.", "She speaks French.", "She is learning English."], use: "and (twice)", a: ["She speaks Malagasy and French, and she is learning English.", "She speaks Malagasy and French and she is learning English."] },
+    ],
+    task: "Write three sentences about last month at work, using and, but and so (or therefore)." },
+  sb11: { plus: "because + a sentence, because of + a noun: because it rained / because of the rain. Also: while, until, as soon as, before, after. After when, until, as soon as, before and after, use the present tense even for the future.",
+    plusMg: "because + fehezanteny, because of + anarana: because it rained / because of the rain. Aorian'ny when, until, as soon as, before, after: ankehitriny na dia ho avy aza.",
+    ex: [
+      { t: "fix", q: "We closed the shop because of it was raining.", a: ["We closed the shop because it was raining.", "We closed the shop because of the rain."] },
+      { t: "combine", q: ["The goods arrive.", "I will call you."], use: "As soon as", a: ["As soon as the goods arrive, I will call you.", "I will call you as soon as the goods arrive."] },
+      { t: "fix", q: "I will wait until he will come.", a: ["I will wait until he comes."] },
+      { t: "mc", q: "The phone rang ___ I was counting the money.", o: ["while", "until", "because of", "as soon"], a: 0 },
+      { t: "combine", q: ["You leave the warehouse.", "Check that the door is locked."], use: "Before", a: ["Before you leave the warehouse, check that the door is locked.", "Check that the door is locked before you leave the warehouse."] },
+      { t: "mc", q: "Which is a complete, correct sentence?", o: ["Because the price was too high. The client refused.", "Because the price was too high, the client refused.", "The client refused. Because the price was too high."], a: 1 },
+      { t: "order", a: "We couldn't deliver the furniture because of the heavy rain." },
+      { t: "mc", q: "After she ___ the report, she sent it to the director.", o: ["finishes", "had finished", "will finish"], a: 1 },
+    ],
+    task: "Write two sentences about your work: one with as soon as and one with because of." },
+  sb12: { plus: "whose = belonging to (the supplier whose prices are low); where = a place (the warehouse where we keep the bales). Extra information goes between commas, with who or which, never that: Mr Rakoto, who has worked here for ten years, … Don't repeat the object: not the products that we ordered them.",
+    plusMg: "whose = an'i (the supplier whose prices are low); where = toerana. Fanazavana fanampiny: misy faingo, who na which fa tsy that. Aza averina ny them: tsy hoe the products that we ordered them.",
+    ex: [
+      { t: "combine", q: ["This is the supplier.", "His prices are the lowest."], use: "whose", a: ["This is the supplier whose prices are the lowest."] },
+      { t: "combine", q: ["This is the warehouse.", "We keep the bales there."], use: "where", a: ["This is the warehouse where we keep the bales."] },
+      { t: "fix", q: "The client which called yesterday wants a discount.", a: ["The client who called yesterday wants a discount.", "The client that called yesterday wants a discount."] },
+      { t: "combine", q: ["Mr Rakoto is our best driver.", "He has worked here for ten years."], use: "who (with commas)", a: ["Mr Rakoto, who has worked here for ten years, is our best driver."] },
+      { t: "mc", q: "The report ___ you sent me has some mistakes.", o: ["who", "whose", "that", "where"], a: 2 },
+      { t: "fix", q: "The products that we ordered them last month are late.", a: ["The products that we ordered last month are late.", "The products we ordered last month are late.", "The products which we ordered last month are late."] },
+      { t: "order", a: "The woman whose shop is next to ours sells shoes." },
+      { t: "fix", q: "Toamasina, that is a big port, is very busy.", a: ["Toamasina, which is a big port, is very busy."] },
+    ],
+    task: "Write two sentences about people and places at your work, one with whose and one with where." },
+  sb13: { plus: "despite / in spite of + a noun or -ing (despite the rain, despite being late); even though + a sentence (even though it rained); whereas compares two things; nevertheless is a formal however.",
+    plusMg: "despite / in spite of + anarana na -ing (despite the rain); even though + fehezanteny; whereas: mampitaha; nevertheless: however ofisialy.",
+    ex: [
+      { t: "fix", q: "Despite it was raining, we opened the shop.", a: ["Despite the rain, we opened the shop.", "Although it was raining, we opened the shop.", "Even though it was raining, we opened the shop.", "In spite of the rain, we opened the shop.", "Despite the fact that it was raining, we opened the shop."] },
+      { t: "combine", q: ["The price was high.", "The client accepted the offer."], use: "Despite", a: ["Despite the high price, the client accepted the offer.", "The client accepted the offer despite the high price."] },
+      { t: "mc", q: "___ he works hard, he never gets a promotion.", o: ["Despite", "Even though", "However", "In spite of"], a: 1 },
+      { t: "fix", q: "Although we lost money, but we continued.", a: ["Although we lost money, we continued.", "We lost money, but we continued."] },
+      { t: "combine", q: ["Sales increased.", "Profit fell because of high costs."], use: "However (new sentence)", a: ["Sales increased. However, profit fell because of high costs."] },
+      { t: "mc", q: "Our shop sells new clothes, ___ theirs sells second-hand clothes.", o: ["despite", "whereas", "however", "even though"], a: 1 },
+      { t: "order", a: "In spite of the delay, the client was satisfied." },
+      { t: "mc", q: "Which is punctuated correctly?", o: ["The supplier is reliable. Nevertheless he is expensive.", "The supplier is reliable. Nevertheless, he is expensive.", "The supplier is reliable, nevertheless he is expensive."], a: 1 },
+    ],
+    task: "Compare two options for your company in two sentences, using despite and whereas." },
+  sb14: { plus: "unless = if not (Unless you pay, … = If you don't pay, …). For a past mistake: If + had + past participle, would have + past participle (If we had checked, we would have seen it). Past cause, present result: If she had studied earlier, she would have a better job now.",
+    plusMg: "unless = raha tsy. Fahadisoana taloha: If + had + past participle, would have + past participle. Antony taloha, vokatra ankehitriny: If she had studied earlier, she would have a better job now.",
+    ex: [
+      { t: "fix", q: "If we will not pay today, the supplier will stop the delivery.", a: ["If we don't pay today, the supplier will stop the delivery.", "Unless we pay today, the supplier will stop the delivery."] },
+      { t: "combine", q: ["You order before Friday.", "You won't get the goods this month."], use: "Unless", a: ["Unless you order before Friday, you won't get the goods this month.", "You won't get the goods this month unless you order before Friday."] },
+      { t: "mc", q: "If I ___ you, I would ask for a discount.", o: ["am", "were", "will be", "would be"], a: 1 },
+      { t: "fix", q: "If we had left earlier, we would arrive on time.", a: ["If we had left earlier, we would have arrived on time."] },
+      { t: "order", a: "If the truck breaks down, we will use another one." },
+      { t: "mc", q: "If she had studied English earlier, she ___ a better job now.", o: ["would have", "would have had", "will have", "had"], a: 0 },
+      { t: "fix", q: "I would buy the warehouse if I would have enough money.", a: ["I would buy the warehouse if I had enough money."] },
+      { t: "combine", q: ["We didn't check the bales.", "We didn't see the damage."], use: "If (a past mistake)", a: ["If we had checked the bales, we would have seen the damage."] },
+    ],
+    task: "Write one sentence with unless and one about a past mistake (If I had …, I would have …)." },
+  sb15: { plus: "Other polite starts: Could you let me know …, I wonder …, Would you mind telling me …, Do you know if … In reported questions the tense moves back: Where is the invoice? → She asked where the invoice was. Is he coming? → She asked if he was coming.",
+    plusMg: "Fanombohana am-panajana hafa: Could you let me know …, I wonder …, Would you mind telling me …, Do you know if … Amin'ny fanontaniana averina lazaina, miverina any aoriana ny fotoana: She asked where the invoice was.",
+    ex: [
+      { t: "fix", q: "Could you tell me what time does the bank close?", a: ["Could you tell me what time the bank closes?"] },
+      { t: "fix", q: "I wonder why did the client cancel the order.", a: ["I wonder why the client cancelled the order.", "I wonder why the client canceled the order."] },
+      { t: "combine", q: ["Is the warehouse open on Saturday?"], use: "Do you know if …", a: ["Do you know if the warehouse is open on Saturday?"] },
+      { t: "combine", q: ["How much will the transport cost?"], use: "Could you let me know …", a: ["Could you let me know how much the transport will cost?"] },
+      { t: "mc", q: "She asked me ___.", o: ["where was the invoice", "where the invoice was", "where is the invoice", "where the invoice is it"], a: 1 },
+      { t: "fix", q: "He asked me do I want a receipt.", a: ["He asked me if I wanted a receipt.", "He asked me whether I wanted a receipt."] },
+      { t: "order", a: "Would you mind telling me when the shipment will arrive?" },
+      { t: "combine", q: ["Why has the price gone up?"], use: "I would like to know …", a: ["I would like to know why the price has gone up."] },
+    ],
+    task: "Write a short polite email (2–3 sentences) asking a supplier two questions, using Could you let me know … and Do you know if …" },
+  sb16: { plus: "Keep lists in the same form (reading, cooking and swimming; to increase, reduce and train). Every sentence needs a subject and a full verb: Because the client was angry. is not a full sentence. However and Therefore start a new sentence or follow a semicolon.",
+    plusMg: "Ataovy mitovy endrika ny lisitra (reading, cooking and swimming). Tsy maintsy manana mpanao sy matoanteny feno ny fehezanteny. However sy Therefore: fehezanteny vaovao na aorian'ny semicolon (;).",
+    ex: [
+      { t: "fix", q: "We checked the bales, we counted them, we stored them in the warehouse.", a: ["We checked the bales, counted them and stored them in the warehouse.", "We checked the bales, counted them, and stored them in the warehouse."] },
+      { t: "mc", q: "Which is a complete sentence?", o: ["Because the client was angry about the late delivery.", "The client was angry about the late delivery.", "When the client, angry about the late delivery."], a: 1 },
+      { t: "fix", q: "She likes reading, to cook and swimming.", a: ["She likes reading, cooking and swimming.", "She likes reading, cooking, and swimming."] },
+      { t: "mc", q: "Sales went up by 20%. ___, we hired two new staff.", o: ["Despite this", "As a result", "Although", "Because"], a: 1 },
+      { t: "mc", q: "Which is correct?", o: ["The meeting was long however we made good decisions.", "The meeting was long. However, we made good decisions.", "The meeting was long, however we made good decisions."], a: 1 },
+      { t: "order", a: "First, we unload the truck. Then, we check every bale." },
+      { t: "fix", q: "Our goal is to increase sales, reducing costs and to train staff.", a: ["Our goal is to increase sales, reduce costs and train staff.", "Our goal is to increase sales, to reduce costs and to train staff.", "Our goal is to increase sales, reduce costs, and train staff."] },
+      { t: "mc", q: "Which is the clearest?", o: ["The truck, which was late because of the rain, which was heavy, arrived at nine.", "Because of the heavy rain, the truck arrived late, at nine.", "The truck arrived at nine late because the rain heavy."], a: 1 },
+    ],
+    task: "In 4–5 clear sentences, explain a problem at work and how you solved it. Use First, Then, However and As a result." },
+};

@@ -30,7 +30,7 @@ A mobile web app that teaches English to a Malagasy speaker, from beginner to ad
 
 - **Recovery code by email**: the learner types her email and gets her recovery code (sent with Brevo). "Forgot your code?" on the restore screen emails it again. Limits: 5 emails per network and 3 per address per day.
 
-- **Sentence Builder**: 16 units (96 exercises) that teach how English sentences are built, aimed at Malagasy speakers' typical mistakes: word order (Malagasy is verb-first), adjectives, articles and plurals, questions, negatives, it/there, joining ideas, relative clauses, contrast, if-sentences, polite indirect questions and run-ons. Exercises: tap words into order, correct the sentence, join sentences, choose. Checked on the phone (no AI cost); only the optional own sentence at the end of a unit is checked by the AI (3 tries).
+- **Sentence Builder**: 16 units (96 exercises) that teach how English sentences are built, aimed at Malagasy speakers' typical mistakes: word order (Malagasy is verb-first), adjectives, articles and plurals, questions, negatives, it/there, joining ideas, relative clauses, contrast, if-sentences, polite indirect questions and run-ons. Exercises: tap words into order, correct the sentence, join sentences, choose. Checked on the phone (no AI cost); only the optional own sentence at the end of a unit is checked by the AI (3 tries). From Level 3 a harder set is used (128 exercises): an extra point per unit for intermediate learners, longer work sentences, two-mistake corrections, three-sentence joins and Malagasy-to-English word order; progress is kept separately.
 
 ## Setup (Netlify environment variables)
 
