@@ -247,6 +247,15 @@ body.has-tabs .app{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 .lu{min-height:56px}
 .lvchips{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
 .lvchips .btn{padding:8px 0;font-size:1.05rem}
+.pattern{font:600 1.05rem/1.35 var(--mono);letter-spacing:.02em;background:var(--green-soft);color:var(--green);border-radius:10px;padding:12px 14px;text-align:center;overflow-wrap:anywhere}
+.answerline{display:flex;flex-wrap:wrap;gap:8px;align-items:center;min-height:62px;padding:10px;border:2px dashed var(--line);border-radius:12px;background:var(--surface)}
+.wpool{display:flex;flex-wrap:wrap;gap:8px}
+.wchip{min-height:44px;padding:8px 14px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);font-size:1.05rem;font-weight:700}
+.wchip.on{background:var(--green-soft);border-color:var(--green)}
+.wchip[disabled]{opacity:.35}
+.wchip.on[disabled]{opacity:1}
+.endmark{font-size:1.3rem;font-weight:800}
+.wrongbox{background:var(--red-soft);border:1.5px solid var(--red);border-radius:10px;padding:12px 14px;font-size:1.05rem}
 .confirm{background:var(--red-soft);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
 </style>
 </head>
@@ -257,6 +266,7 @@ body.has-tabs .app{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 <div id="sheetHost"></div>
 
 <script src="skills.js"></script>
+<script src="builder.js"></script>
 <script>
 /* ================= CONTENT ================= */
 const LEVELS=[
@@ -1010,6 +1020,7 @@ function home(){
    ${moneyCard()}`;
  }else if(TAB==="practice"){
   body=`<div><h1>Practice</h1><p class="muted">Build all four skills and your grammar. You need all of them to move up a level.<span class="mg">Ampitomboy ny fahaizana efatra sy ny fitsipi-pitenenana.</span></p></div>
+   ${typeof sbCard==="function"?sbCard():""}
    ${typeof skillsTiles==="function"?skillsTiles():""}
    ${hardN?`<section class="panel row" style="justify-content:space-between"><div><h3>Difficult words</h3><p class="muted">${hardN} word${hardN>1?"s":""} to practise</p></div><button class="btn" data-act="review">Practise</button></section>`:""}
    ${weak.length?`<div class="stack tight"><p class="kicker">Your focus from the level test</p><div class="chips">${weak.map(x=>`<span class="chip">${SEC[x].en}</span>`).join("")}</div></div>`:""}`;
