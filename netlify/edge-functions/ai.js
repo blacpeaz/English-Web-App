@@ -250,6 +250,27 @@ const SCHEMAS = {
   },
 };
 
+// Every Malagasy explanation also gets a French version (Malagasy from the AI is sometimes imperfect).
+// mg -> fr, tip_mg -> tip_fr, summary_mg -> summary_fr. Objects that already have "fr" (word glossaries) are left alone.
+function addFrench(x) {
+  if (Array.isArray(x)) return x.forEach(addFrench);
+  if (!x || typeof x !== "object") return;
+  if (x.type === "object" && x.properties) {
+    for (const [mg, fr] of [["mg", "fr"], ["tip_mg", "tip_fr"], ["summary_mg", "summary_fr"]]) {
+      if (x.properties[mg] && !x.properties[fr]) {
+        x.properties[fr] = { type: "string" };
+        if (Array.isArray(x.required) && x.required.includes(mg)) x.required.push(fr);
+      }
+    }
+  }
+  Object.values(x).forEach(addFrench);
+}
+addFrench(SCHEMAS);
+const FR_NOTE =
+  "\n\nLANGUAGE OF EXPLANATIONS: every Malagasy field (mg, tip_mg, summary_mg) has a French partner field (fr, tip_fr, summary_fr). " +
+  "Write the same explanation in both. Write the Malagasy in short, simple, standard Malagasy that you are sure is correct; " +
+  "the French must be clear and correct, because the learner relies on it when the Malagasy is unclear.";
+
 // Structured outputs need "additionalProperties: false" on every object in the schema.
 function strict(schema) {
   if (Array.isArray(schema)) return schema.map(strict);
@@ -261,6 +282,12 @@ function strict(schema) {
 }
 
 function build(task, p) {
+  const r = buildBase(task, p);
+  if (r) r.system += FR_NOTE;
+  return r;
+}
+
+function buildBase(task, p) {
   if (task === "lesson") {
     const lv = level(p.level);
     return {
@@ -460,16 +487,16 @@ function build(task, p) {
 // "light" tasks are small and cheap; they have their own daily allowance (see usage.mjs).
 const LIMITS = {
   lesson: { fast: false, max: 11000 },
-  grammar: { fast: false, max: 6000 },
-  speakfb: { fast: false, max: 2500, light: true },
-  roleplay: { fast: true, max: 800, light: true, gemini: true },
-  listening: { fast: false, max: 5000 },
-  writepro: { fast: false, max: 5000 },
-  writing: { fast: false, max: 3500 },
-  speaking: { fast: true, max: 700, light: true, gemini: true },
+  grammar: { fast: false, max: 7500 },
+  speakfb: { fast: false, max: 3000, light: true },
+  roleplay: { fast: true, max: 1000, light: true, gemini: true },
+  listening: { fast: false, max: 6000 },
+  writepro: { fast: false, max: 6000 },
+  writing: { fast: false, max: 4000 },
+  speaking: { fast: true, max: 900, light: true, gemini: true },
   levelup: { fast: false, max: 7000 },
   words: { fast: false, max: 4500, light: true, gemini: true },
-  sentence: { fast: false, max: 700, light: true, gemini: true },
+  sentence: { fast: false, max: 900, light: true, gemini: true },
 };
 
 // ---------- Google Gemini (free tier) for small jobs ----------

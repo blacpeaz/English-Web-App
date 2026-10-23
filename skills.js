@@ -209,7 +209,7 @@ function normAns(x) {
 function rubricBars(r, labels) {
   return `<div class="rub">${labels.map(([k, lab]) => { const v = Math.max(0, Math.min(5, parseInt(r && r[k], 10) || 0)); return `<span>${lab}</span><div class="meter"><i class="${v < 3 ? "low" : ""}" style="width:${v * 20}%"></i></div><b>${v}/5</b>`; }).join("")}</div>`;
 }
-function mistakesHTML(ms) { return (ms || []).slice(0, 8).map((m) => `<div class="mist"><span><s>${esc(m.wrong)}</s> → <b>${esc(m.right)}</b></span><span>${esc(m.why)}</span><span class="mg">${esc(m.mg)}</span></div>`).join(""); }
+function mistakesHTML(ms) { return (ms || []).slice(0, 8).map((m) => `<div class="mist"><span><s>${esc(m.wrong)}</s> → <b>${esc(m.right)}</b></span><span>${esc(m.why)}</span><span class="mg">${esc(m.mg)}</span>${frs(m.fr)}</div>`).join(""); }
 
 /* ================= HOME: TILES, TALK CARD, CHECKLIST ================= */
 function skillsTiles() {
@@ -272,7 +272,7 @@ async function openGrammar(id) {
       const r = await aiCall("grammar", { level: t.lv, title: t.title, note: t.note, mistakes: (S.mistakes || []).slice(0, 10) }, loadingProgress);
       const ex = (r.exercises || []).filter((e) => e.q && (e.t === "mc" ? Array.isArray(e.o) && e.o.length >= 2 && Number.isInteger(e.a) && e.a >= 0 && e.a < e.o.length : Array.isArray(e.answers) && e.answers.length));
       if (ex.length < 6) throw new AIError("default");
-      c = { title: String(r.title || t.title), en: String(r.summary_en || ""), mg: String(r.summary_mg || ""), rules: (r.rules || []).slice(0, 6), examples: (r.examples || []).slice(0, 6), mistakes: (r.mistakes || []).slice(0, 5), ex, produce: r.produce || { task: "Write 2 sentences using this grammar.", mg: "" } };
+      c = { title: String(r.title || t.title), en: String(r.summary_en || ""), mg: String(r.summary_mg || ""), fr: String(r.summary_fr || ""), rules: (r.rules || []).slice(0, 6), examples: (r.examples || []).slice(0, 6), mistakes: (r.mistakes || []).slice(0, 5), ex, produce: r.produce || { task: "Write 2 sentences using this grammar.", mg: "" } };
       S.gcache[id] = c; save();
     } catch (e) { return aiFailed(e); }
   }
@@ -285,7 +285,7 @@ function renderGrammar() {
   let h = `<div class="top"><button class="x" data-act="sk-grammar" aria-label="Back">${ICON.x}</button><div class="steps">${steps.map((s, i) => `<span class="${i < g.step ? "done" : i === g.step ? "now" : ""}">${s}</span>`).join("")}</div></div>`;
   if (g.step === 0) {
     h += `<div class="stack"><div><p class="kicker">Level ${g.t.lv} grammar</p><h1 style="margin-top:6px">${esc(c.title)}</h1></div>
-     <section class="panel stack tight"><p>${esc(c.en)}</p><span class="mg">${esc(c.mg)}</span></section>
+     <section class="panel stack tight"><p>${esc(c.en)}</p><span class="mg">${esc(c.mg)}</span>${frs(c.fr)}</section>
      <section class="stack tight"><p class="kicker">How to make it</p>${c.rules.map((r) => `<div class="rule"><b>${esc(r.rule)}</b><span>${esc(r.example)}</span></div>`).join("")}</section>
      <section class="stack tight"><p class="kicker">Examples · Ohatra</p><ul class="exs">${c.examples.map((x, i) => `<li><button class="say" data-act="sk-gsay" data-i="${i}" aria-label="Listen">${ICON.spk}</button><span>${esc(x.en)}<span class="mg">${esc(x.note)}</span></span></li>`).join("")}</ul></section>
      ${c.mistakes.length ? `<section class="stack tight"><p class="kicker">Common mistakes · Fahadisoana mahazatra</p>${mistakesHTML(c.mistakes)}</section>` : ""}
@@ -302,15 +302,15 @@ function renderGrammar() {
        ${g.answered ? "" : '<button class="btn primary" data-act="sk-gtype">Check · Hamarino</button>'}`;
     }
     if (g.answered) {
-      h += `<div class="fb ${g.ok ? "ok" : "no"}"><b>${g.ok ? "Correct!" : "Not quite."}</b>${!g.ok && e.t !== "mc" ? `<p><b>Answer:</b> ${esc(e.answers[0])}</p>` : ""}<p>${esc(e.why)}<span class="mg">${esc(e.mg)}</span></p></div>
+      h += `<div class="fb ${g.ok ? "ok" : "no"}"><b>${g.ok ? "Correct!" : "Not quite."}</b>${!g.ok && e.t !== "mc" ? `<p><b>Answer:</b> ${esc(e.answers[0])}</p>` : ""}<p>${esc(e.why)}<span class="mg">${esc(e.mg)}</span>${frs(e.fr)}</p></div>
        <button class="btn primary" data-act="sk-gex">${g.i === n - 1 ? "Next: use it" : "Next exercise"}</button>`;
     }
     h += `</div>`;
   } else if (g.step === 2) {
-    h += `<div class="stack"><div><p class="kicker">Use it · Ampiasao</p><h2>${esc(c.produce.task)}</h2><span class="mg">${esc(c.produce.mg)}</span></div>
+    h += `<div class="stack"><div><p class="kicker">Use it · Ampiasao</p><h2>${esc(c.produce.task)}</h2><span class="mg">${esc(c.produce.mg)}</span>${frs(c.produce.fr)}</div>
      ${[0, 1].map((k) => { const st = g.sent[k]; return `<section class="panel stack tight"><label for="gS${k}"><b>Sentence ${k + 1}</b></label>
        <textarea id="gS${k}" class="textarea" style="min-height:70px" ${st.res ? "readonly" : ""}>${esc(st.text || "")}</textarea>
-       <div aria-live="polite">${st.res ? (st.res.correct ? `<div class="fb ok"><b>Correct!</b><p>${esc(st.res.why)}<span class="mg">${esc(st.res.mg)}</span></p></div>` : `<div class="fb no"><b>Not quite</b><p>${esc(st.res.why)}<span class="mg">${esc(st.res.mg)}</span></p></div><p class="corr">${esc(st.res.corrected)}</p>`) : st.err ? `<p class="muted">${esc(st.err)}</p>` : ""}</div>
+       <div aria-live="polite">${st.res ? (st.res.correct ? `<div class="fb ok"><b>Correct!</b><p>${esc(st.res.why)}<span class="mg">${esc(st.res.mg)}</span>${frs(st.res.fr)}</p></div>` : `<div class="fb no"><b>Not quite</b><p>${esc(st.res.why)}<span class="mg">${esc(st.res.mg)}</span>${frs(st.res.fr)}</p></div><p class="corr">${esc(st.res.corrected)}</p>`) : st.err ? `<p class="muted">${esc(st.err)}</p>` : ""}</div>
        ${st.res ? "" : `<button class="btn" data-act="sk-gcheck" data-k="${k}">${st.err ? "Check again" : "Check"}</button>`}</section>`; }).join("")}
      <button class="btn primary" data-act="sk-gnext">Finish · Vita</button></div>`;
   } else {
@@ -330,7 +330,7 @@ async function grammarCheckSentence(k) {
   if (wc(text) < 3) { st.err = "Write a full sentence first."; return renderGrammar(); }
   try {
     const r = await aiCall("sentence", { level: g.t.lv, grammar: g.c.title, task: g.c.produce.task, sentence: text });
-    st.res = { correct: !!r.correct, corrected: String(r.corrected || ""), why: String(r.why || ""), mg: String(r.mg || "") }; st.err = null;
+    st.res = { correct: !!r.correct, corrected: String(r.corrected || ""), why: String(r.why || ""), mg: String(r.mg || ""), fr: String(r.fr || "") }; st.err = null;
     if (!st.res.correct && st.res.corrected) S.mistakes = [`${text} → ${st.res.corrected}`, ...(S.mistakes || [])].slice(0, 20);
   } catch (e) { st.err = aiMsg(e)[0] + " Your sentence is kept; try again."; }
   renderGrammar();
@@ -407,7 +407,7 @@ async function speakFeedback() {
      <p class="kicker">What you said, corrected</p><div class="row" style="flex-wrap:nowrap;align-items:flex-start"><p class="corr" style="flex:1;min-width:0">${esc(r.corrected)}</p><button class="say" data-act="sk-saytext" data-t="corrected" aria-label="Listen">${ICON.spk}</button></div>
      ${(r.mistakes || []).length ? `<p class="kicker">Mistakes to learn from</p>${mistakesHTML(r.mistakes)}` : ""}
      <p class="kicker">A stronger answer · Valiny tsara kokoa</p><div class="row" style="flex-wrap:nowrap;align-items:flex-start"><p class="corr" style="flex:1;min-width:0;background:var(--gold-soft)">${esc(r.model)}</p><button class="say" data-act="sk-saytext" data-t="model" aria-label="Listen">${ICON.spk}</button></div>
-     <p class="tip">${esc(r.tip)}<span class="mg">${esc(r.tip_mg)}</span></p>
+     <p class="tip">${esc(r.tip)}<span class="mg">${esc(r.tip_mg)}</span>${frs(r.tip_fr)}</p>
      ${r.follow_up ? `<button class="btn primary" data-act="sk-follow">Answer the follow-up: “${esc(r.follow_up)}”</button>` : ""}
      <button class="btn" data-act="sk-speak" style="width:100%;min-height:50px">Back to speaking</button></div>`;
     window.scrollTo(0, 0);
@@ -429,7 +429,7 @@ function renderRoleplay() {
   const rp = SK.rp;
   const bubbles = rp.history.map((t, i) => {
     const c = t.who === "me" ? rp.corrections[i] : null;
-    return `<div class="bubble ${t.who === "me" ? "me" : "ai"}"><span>${esc(t.text)}</span>${t.who === "ai" ? `<button class="say" data-act="sk-rpsay" data-i="${i}" aria-label="Listen">${ICON.spk}</button>` : ""}</div>${c ? `<div class="bfix"><b>Better:</b> ${esc(c.better)}<span>${esc(c.why)}</span><span class="mg">${esc(c.mg)}</span></div>` : ""}`;
+    return `<div class="bubble ${t.who === "me" ? "me" : "ai"}"><span>${esc(t.text)}</span>${t.who === "ai" ? `<button class="say" data-act="sk-rpsay" data-i="${i}" aria-label="Listen">${ICON.spk}</button>` : ""}</div>${c ? `<div class="bfix"><b>Better:</b> ${esc(c.better)}<span>${esc(c.why)}</span><span class="mg">${esc(c.mg)}</span>${frs(c.fr)}</div>` : ""}`;
   }).join("");
   view.innerHTML = skTop("Role-play · " + rp.r.title, "sk-speak") + `<div class="stack"><div class="chat">${bubbles}${rp.busy ? '<div class="bubble ai"><span class="dots"><i></i><i></i><i></i></span></div>' : ""}</div>
    ${rp.ended ? `<button class="btn primary" data-act="sk-rpend">See my results</button>` : rp.busy ? "" : `${captureBlock("rpAns", "Your reply…")}<button class="btn primary" data-act="sk-rpsend">Send · Alefa</button><button class="link" data-act="sk-rpend" style="align-self:center">Finish the conversation</button>`}
@@ -442,7 +442,7 @@ async function roleplayTurn(text) {
   rp.busy = true; renderRoleplay();
   try {
     const r = await aiCall("roleplay", { level: S.level || 1, scenario: rp.r.scenario, role: rp.r.role, learnerRole: rp.r.learnerRole, goal: rp.r.goal, history: rp.history });
-    if (text && r.correction && r.correction.needed && r.correction.better) rp.corrections[rp.history.length - 1] = { better: String(r.correction.better), why: String(r.correction.why || ""), mg: String(r.correction.mg || "") };
+    if (text && r.correction && r.correction.needed && r.correction.better) rp.corrections[rp.history.length - 1] = { better: String(r.correction.better), why: String(r.correction.why || ""), mg: String(r.correction.mg || ""), fr: String(r.correction.fr || "") };
     rp.history.push({ who: "ai", text: String(r.reply || "…") });
     rp.ended = !!r.end || rp.history.filter((t) => t.who === "me").length >= 10;
     rp.busy = false; renderRoleplay(); say(String(r.reply || ""), false);
@@ -461,7 +461,7 @@ function roleplayEnd() {
   window.scrollTo(0, 0);
   view.innerHTML = skTop("Role-play · Results", "sk-speak") + `<div class="stack">
    <div style="text-align:center"><span class="score-ring">${score}%</span><p class="muted">${mine.length} replies · ${fixes.length} to improve${mine.length < 3 ? " · say at least 3 things to count this role-play" : ""}</p></div>
-   ${fixes.length ? `<p class="kicker">Learn these better ways to say it</p>${fixes.map((x) => `<div class="mist"><span><s>${esc(x.t.text)}</s></span><span><b>${esc(rp.corrections[x.i].better)}</b></span><span>${esc(rp.corrections[x.i].why)}</span><span class="mg">${esc(rp.corrections[x.i].mg)}</span></div>`).join("")}` : '<div class="fb ok"><b>Excellent!</b><p>No corrections needed. Try a harder role-play.</p></div>'}
+   ${fixes.length ? `<p class="kicker">Learn these better ways to say it</p>${fixes.map((x) => `<div class="mist"><span><s>${esc(x.t.text)}</s></span><span><b>${esc(rp.corrections[x.i].better)}</b></span><span>${esc(rp.corrections[x.i].why)}</span><span class="mg">${esc(rp.corrections[x.i].mg)}</span>${frs(rp.corrections[x.i].fr)}</div>`).join("")}` : '<div class="fb ok"><b>Excellent!</b><p>No corrections needed. Try a harder role-play.</p></div>'}
    <button class="btn primary" data-act="sk-rp" data-id="${rp.r.id}">Try again · Andramo indray</button><button class="btn" data-act="sk-speak" style="width:100%;min-height:50px">Back to speaking</button></div>`;
 }
 
@@ -517,7 +517,7 @@ function renderListen() {
     const q = d.qs[ls.qi], n = d.qs.length;
     h += `<div class="stack"><div class="row" style="justify-content:space-between"><p class="kicker">Question ${ls.qi + 1} of ${n} · ${esc(q.type || "")}</p><span class="muted" style="font-size:.85rem">${ls.right} correct</span></div>${playRow}
      <h2>${esc(q.q)}</h2><div class="opts">${q.o.map((o, i) => { let c = ""; if (ls.answered) { if (i === q.a) c = " right"; else if (i === ls.pick) c = " wrong"; } return `<button class="opt${c}" data-act="sk-lans" data-i="${i}" ${ls.answered ? "disabled" : ""}>${esc(o)}</button>`; }).join("")}</div>
-     ${ls.answered ? `<div class="fb ${ls.pick === q.a ? "ok" : "no"}"><b>${ls.pick === q.a ? "Correct!" : "Not quite."}</b><p>${esc(q.why)}<span class="mg">${esc(q.mg)}</span></p></div><button class="btn primary" data-act="sk-lq">${ls.qi === n - 1 ? "Next: read the text" : "Next question"}</button>` : ""}</div>`;
+     ${ls.answered ? `<div class="fb ${ls.pick === q.a ? "ok" : "no"}"><b>${ls.pick === q.a ? "Correct!" : "Not quite."}</b><p>${esc(q.why)}<span class="mg">${esc(q.mg)}</span>${frs(q.fr)}</p></div><button class="btn primary" data-act="sk-lq">${ls.qi === n - 1 ? "Next: read the text" : "Next question"}</button>` : ""}</div>`;
   } else if (ls.step === 2) {
     h += `<div class="stack"><p class="kicker">Now read what you heard · Vakio izay henonao</p><div class="row"><button class="btn" data-act="sk-lplay">${ICON.spk} Listen while reading</button></div>
      <div class="passage">${d.lines.map((l) => `<div class="line" style="grid-template-columns:1fr"><div class="txt">${l.who ? `<span class="who">${esc(l.who)}</span>` : ""}${esc(l.text)}</div></div>`).join("")}</div>
@@ -582,7 +582,7 @@ async function submitWriting() {
      ${(r.mistakes || []).length ? `<p class="kicker">Mistakes to learn from</p>${mistakesHTML(r.mistakes)}` : ""}
      <details class="panel"><summary style="cursor:pointer;font-weight:700">Your text, corrected</summary><p class="corr" style="margin-top:10px">${esc(r.corrected)}</p></details>
      <details class="panel" open><summary style="cursor:pointer;font-weight:700">Model answer · Ohatra tsara</summary><p class="corr" style="margin-top:10px;background:var(--gold-soft)">${esc(r.model)}</p></details>
-     <section class="stack tight"><p class="kicker">Tips</p>${(r.tips || []).map((t) => `<p class="tip">${esc(t)}</p>`).join("")}<span class="mg">${esc(r.tip_mg)}</span></section>
+     <section class="stack tight"><p class="kicker">Tips</p>${(r.tips || []).map((t) => `<p class="tip">${esc(t)}</p>`).join("")}<span class="mg">${esc(r.tip_mg)}</span>${frs(r.tip_fr)}</section>
      <button class="btn primary" data-act="sk-wrewrite">Rewrite and submit again</button><button class="btn" data-act="sk-write" style="width:100%;min-height:50px">Back to writing</button></div>`;
   } catch (e) { const m = aiMsg(e); res.innerHTML = `<p class="muted">${esc(m[0])} Your text is saved; try again.<span class="mg">${esc(m[1])}</span></p>`; S.wdrafts = S.wdrafts || {}; S.wdrafts[w.t.id] = w.text; save(); btn.disabled = false; btn.textContent = "Submit for marking · Alefa"; }
 }

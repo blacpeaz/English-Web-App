@@ -256,6 +256,8 @@ body.has-tabs .app{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 .wchip.on[disabled]{opacity:1}
 .endmark{font-size:1.3rem;font-weight:800}
 .wrongbox{background:var(--red-soft);border:1.5px solid var(--red);border-radius:10px;padding:12px 14px;font-size:1.05rem}
+.mg.fr{font-style:normal}
+.mg.fr::before{content:"FR";display:inline-block;font-size:.62rem;font-weight:700;letter-spacing:.06em;border:1px solid var(--line);border-radius:4px;padding:0 4px;margin-right:6px;vertical-align:1px}
 .confirm{background:var(--red-soft);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
 </style>
 </head>
@@ -894,6 +896,8 @@ function openVoiceSheet(){
 }
 if(TTS){pickVoice();speechSynthesis.onvoiceschanged=pickVoice}
 function utter(t,slow){const u=new SpeechSynthesisUtterance(clean(t));u.lang=VOICE?VOICE.lang:"en-GB";if(VOICE)u.voice=VOICE;const base=S.rate||0.92;u.rate=slow?base*0.74:base;u.pitch=S.pitch||1.15;return u}
+/* French partner line shown under a Malagasy explanation (only when there is one). */
+function frs(t){return t?`<span class="mg fr" lang="fr">${esc(t)}</span>`:""}
 function say(t,slow){if(!TTS)return;speechSynthesis.cancel();speechSynthesis.speak(utter(t,slow===undefined?S.slow:slow))}
 function playLines(lines){if(!TTS)return;speechSynthesis.cancel();lines.forEach((t,i)=>{const u=utter(t,S.slow);u.onstart=()=>hl(i);u.onend=()=>{if(i===lines.length-1)hl(-1)};speechSynthesis.speak(u)})}
 function hl(i){document.querySelectorAll(".line").forEach((el,j)=>el.classList.toggle("hl",j===i))}
@@ -1119,7 +1123,7 @@ function renderLesson(){
   <p class="inst">Listen first. Then tap Record and say the sentence. Green words were clear; red words need practice.<span class="mg">Henoy aloha. Avy eo tsindrio Record ary tenony. Maitso = mazava; mena = mbola mila fanazarana.</span></p>
   ${blocks}<button class="btn primary" data-act="lnext">${l.writing?"Next: writing · Fanoratana":"Finish lesson · Vita"}</button></div>`;
  }else if(L.step===4&&l.writing&&!L.skipWrite){
-  h+=`<div class="stack"><div><p class="kicker">Writing · Fanoratana</p><h2>${esc(l.writing.task)}</h2><span class="mg">${esc(l.writing.mg)}</span></div>
+  h+=`<div class="stack"><div><p class="kicker">Writing · Fanoratana</p><h2>${esc(l.writing.task)}</h2><span class="mg">${esc(l.writing.mg)}</span>${frs(l.writing.fr)}</div>
   <label for="writeBox" class="muted" style="font-size:.9rem">Write in English. The AI teacher will correct it and explain.</label>
   <textarea id="writeBox" class="textarea" placeholder="Write here…">${esc(L.writeText||"")}</textarea>
   <div id="writeRes" class="stack tight" aria-live="polite">${L.writeHTML||""}</div>
@@ -1129,7 +1133,7 @@ function renderLesson(){
  }
  view.innerHTML=h;
 }
-function moneyBox(l){return `<section class="moneybox"><p class="kicker">Money lesson · Lesona momba ny vola</p><p><b>${esc(l.takeaway.en)}</b><span class="mg">${esc(l.takeaway.mg)}</span></p>${l.action?`<p><b>This week:</b> ${esc(l.action.en)}<span class="mg">${esc(l.action.mg)}</span></p>`:""}</section>`}
+function moneyBox(l){return `<section class="moneybox"><p class="kicker">Money lesson · Lesona momba ny vola</p><p><b>${esc(l.takeaway.en)}</b><span class="mg">${esc(l.takeaway.mg)}</span>${frs(l.takeaway.fr)}</p>${l.action?`<p><b>This week:</b> ${esc(l.action.en)}<span class="mg">${esc(l.action.mg)}</span>${frs(l.action.fr)}</p>`:""}</section>`}
 function renderQuestion(){
  const l=L.lesson,q=l.qs[L.qi],n=l.qs.length;
  let h=`<div class="stack"><div class="row" style="justify-content:space-between"><p class="kicker">Question ${L.qi+1} of ${n}</p><span class="muted" style="font-size:.85rem;font-variant-numeric:tabular-nums">${L.right} correct</span></div>`;
@@ -1146,7 +1150,7 @@ function renderQuestion(){
  const opts=q.t==="tf"?["True","False"]:q.o,ans=q.t==="tf"?(q.a?0:1):q.a;
  h+=`<h2>${esc(q.q)}</h2>${q.t==="tf"?'<span class="mg">Marina sa diso?</span>':""}<div class="opts">${opts.map((o,i)=>{let c="";if(L.answered){if(i===ans)c=" right";else if(i===L.pick)c=" wrong"}return `<button class="opt${c}" data-act="qans" data-i="${i}" ${L.answered?"disabled":""}>${esc(o)}</button>`}).join("")}</div>`;
  if(L.answered){const ok=L.pick===ans;
-  h+=`<div class="fb ${ok?"ok":"no"}"><b>${ok?"Correct!":"Not quite."}</b><p>${esc(q.why)}${!ok&&q.mg?`<span class="mg">${esc(q.mg)}</span>`:ok?'<span class="mg">Marina!</span>':""}</p></div><button class="btn primary" data-act="qnext">${L.qi===n-1?"Next: speaking":"Next question"}</button>`}
+  h+=`<div class="fb ${ok?"ok":"no"}"><b>${ok?"Correct!":"Not quite."}</b><p>${esc(q.why)}${!ok&&q.mg?`<span class="mg">${esc(q.mg)}</span>${frs(q.fr)}`:ok?'<span class="mg">Marina!</span>':""}</p></div><button class="btn primary" data-act="qnext">${L.qi===n-1?"Next: speaking":"Next question"}</button>`}
  return h+"</div>";
 }
 function qAnswer(i){const q=L.lesson.qs[L.qi];if(L.answered)return;const ans=q.t==="tf"?(q.a?0:1):q.a;L.pick=i;L.answered=true;if(i===ans)L.right++;view.innerHTML=lessonTop()+renderQuestion()}
@@ -1237,15 +1241,15 @@ function normalizeAiLesson(raw,level,topic,kind){
  const fix=t=>String(t||"").replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g,(m,shown,k)=>{const nk=map[slug(k||shown)];return nk?`[[${shown}|${nk}]]`:shown});
  const lines=(raw.lines||[]).map(l=>[l.who?String(l.who).slice(0,30):null,fix(l.text)]).filter(l=>l[1].trim());
  const qs=[];(raw.qs||[]).forEach(q=>{if(!q.q)return;
-  if(q.t==="tf"&&typeof q.truth==="boolean")qs.push({t:"tf",q:String(q.q),a:q.truth,why:String(q.why||""),mg:String(q.mg||"")});
-  else if(Array.isArray(q.o)&&q.o.length>=2&&Number.isInteger(q.a)&&q.a>=0&&q.a<q.o.length)qs.push({t:"mc",q:String(q.q),o:q.o.map(String),a:q.a,why:String(q.why||""),mg:String(q.mg||"")})});
+  if(q.t==="tf"&&typeof q.truth==="boolean")qs.push({t:"tf",q:String(q.q),a:q.truth,why:String(q.why||""),mg:String(q.mg||""),fr:String(q.fr||"")});
+  else if(Array.isArray(q.o)&&q.o.length>=2&&Number.isInteger(q.a)&&q.a>=0&&q.a<q.o.length)qs.push({t:"mc",q:String(q.q),o:q.o.map(String),a:q.a,why:String(q.why||""),mg:String(q.mg||""),fr:String(q.fr||"")})});
  let mk=[...new Set((raw.match||[]).map(k=>map[slug(k)]).filter(Boolean))];if(mk.length<3)mk=words.slice(0,4);if(mk.length>=3)qs.push({t:"match",keys:mk.slice(0,4)});
- const speak=(raw.speak||[]).slice(0,4).map(x=>({t:String(x.t||"").trim(),tip:String(x.tip||""),mg:String(x.mg||"")})).filter(x=>x.t);
+ const speak=(raw.speak||[]).slice(0,4).map(x=>({t:String(x.t||"").trim(),tip:String(x.tip||""),mg:String(x.mg||""),fr:String(x.fr||"")})).filter(x=>x.t);
  if(!lines.length||qs.length<3||!words.length)throw new AIError("default");
  return {id,level,ai:true,created:today(),topic:String(raw.topic||topic).slice(0,60),kind:String(raw.kind||kind).slice(0,30),title:String(raw.title||"New lesson").slice(0,80),lines,words,gloss,qs,speak,
-  writing:raw.writing&&raw.writing.task?{task:String(raw.writing.task),mg:String(raw.writing.mg||"")}:null,
-  takeaway:raw.takeaway&&raw.takeaway.en?{en:String(raw.takeaway.en),mg:String(raw.takeaway.mg||"")}:null,
-  action:raw.action&&raw.action.en?{en:String(raw.action.en),mg:String(raw.action.mg||"")}:null};
+  writing:raw.writing&&raw.writing.task?{task:String(raw.writing.task),mg:String(raw.writing.mg||""),fr:String(raw.writing.fr||"")}:null,
+  takeaway:raw.takeaway&&raw.takeaway.en?{en:String(raw.takeaway.en),mg:String(raw.takeaway.mg||""),fr:String(raw.takeaway.fr||"")}:null,
+  action:raw.action&&raw.action.en?{en:String(raw.action.en),mg:String(raw.action.mg||""),fr:String(raw.action.fr||"")}:null};
 }
 async function openMoney(i){
  const id=(S.money||{})[i];if(id&&ALL().some(l=>l.id===id))return openLesson(id);
@@ -1295,8 +1299,8 @@ async function checkWriting(){
   S.mistakes=[...ms.map(m=>`${m.wrong} → ${m.right}`),...(S.mistakes||[])].slice(0,20);S.writing=S.writing||{};S.writing[L.lesson.id]={text,score,at:today()};save();
   L.writeHTML=`<div class="fb ${score>=60?"ok":"no"}"><b>${score}% · ${score>=80?"Very good!":score>=60?"Good work!":"Keep practising!"}</b><p>${esc(r.good||"")}</p></div>
    <p class="kicker">Corrected text</p><p class="corr">${esc(r.corrected||text)}</p>
-   ${ms.length?`<p class="kicker">Mistakes to learn from</p>${ms.map(m=>`<div class="mist"><span><s>${esc(m.wrong)}</s> → <b>${esc(m.right)}</b></span><span>${esc(m.why)}</span><span class="mg">${esc(m.mg)}</span></div>`).join("")}`:""}
-   ${r.tip?`<p class="tip">${esc(r.tip)}<span class="mg">${esc(r.tip_mg||"")}</span></p>`:""}`;
+   ${ms.length?`<p class="kicker">Mistakes to learn from</p>${ms.map(m=>`<div class="mist"><span><s>${esc(m.wrong)}</s> → <b>${esc(m.right)}</b></span><span>${esc(m.why)}</span><span class="mg">${esc(m.mg)}</span>${frs(m.fr)}</div>`).join("")}`:""}
+   ${r.tip?`<p class="tip">${esc(r.tip)}<span class="mg">${esc(r.tip_mg||"")}</span>${frs(r.tip_fr)}</p>`:""}`;
   renderLesson();
  }catch(e){const m=aiMsg(e);res.innerHTML=`<p class="muted">${esc(m[0])}<span class="mg">${esc(m[1])}</span></p>`;btn.disabled=false;btn.textContent="Check my writing · Hamarino"}
 }
@@ -1304,7 +1308,7 @@ async function speakingTips(id,btn){
  const last=SPKLAST[id];if(!last)return;const out=btn.nextElementSibling;btn.disabled=true;btn.textContent="Asking the teacher…";
  try{
   const r=await aiCall("speaking",{sentence:SPK[id],heard:last.heard,missed:last.missed});
-  out.innerHTML=(r.tips||[]).slice(0,3).map(t=>`<div class="tip"><b>${esc(t.word)}</b>: ${esc(t.tip)}<span class="mg">${esc(t.mg)}</span></div>`).join("")+(r.cheer?`<p class="muted">${esc(r.cheer)}</p>`:"");
+  out.innerHTML=(r.tips||[]).slice(0,3).map(t=>`<div class="tip"><b>${esc(t.word)}</b>: ${esc(t.tip)}<span class="mg">${esc(t.mg)}</span>${frs(t.fr)}</div>`).join("")+(r.cheer?`<p class="muted">${esc(r.cheer)}</p>`:"");
   btn.remove();
  }catch(e){const m=aiMsg(e);out.innerHTML=`<p class="muted">${esc(m[0])}</p>`;btn.disabled=false;btn.textContent="Ask the teacher how to say the red words"}
 }
@@ -1392,8 +1396,8 @@ function rateCard(ok){const d=S.daily,k=curCardKey(),v=S.vocab[k];
  d.i++;D.flip=false;save();renderCard()}
 function sentResult(st){const r=st.res;
  if(r.local)return `<div class="fb no"><b>Not checked</b><p>${esc(r.msg)} Compare your sentence with the examples.</p></div>`;
- if(r.correct)return `<div class="fb ok"><b>Correct! · Marina!</b><p>${esc(r.why)}<span class="mg">${esc(r.mg)}</span></p>${r.better?`<p style="margin-top:6px"><b style="font-size:1rem">A more natural way:</b> ${esc(r.better)}</p>`:""}</div>`;
- return `<div class="fb no"><b>Not quite · Tsy dia marina</b><p>${esc(r.why)}<span class="mg">${esc(r.mg)}</span></p></div>
+ if(r.correct)return `<div class="fb ok"><b>Correct! · Marina!</b><p>${esc(r.why)}<span class="mg">${esc(r.mg)}</span>${frs(r.fr)}</p>${r.better?`<p style="margin-top:6px"><b style="font-size:1rem">A more natural way:</b> ${esc(r.better)}</p>`:""}</div>`;
+ return `<div class="fb no"><b>Not quite · Tsy dia marina</b><p>${esc(r.why)}<span class="mg">${esc(r.mg)}</span>${frs(r.fr)}</p></div>
   <div class="stack tight" style="margin-top:12px"><p class="kicker">The correct way · Ny fomba marina</p><div class="row" style="flex-wrap:nowrap;align-items:flex-start"><p class="corr" style="flex:1;min-width:0">${esc(r.corrected)}</p><button class="say" data-act="dsaycorr" aria-label="Listen to the correct sentence">${ICON.spk}</button></div></div>`}
 function renderWrite(){
  const d=S.daily,n=d.keys.length,k=d.keys[d.wi||0];if(!k){d.redo=false;return finishDaily()}
@@ -1420,7 +1424,7 @@ async function checkSentence(){
  const btn=view.querySelector('[data-act="dcheck"]');btn.disabled=true;btn.textContent="The teacher is checking…";
  try{
   const r=await aiCall("sentence",{level:S.level||1,word:v.en,def:v.def,sentence:text});
-  st.tries=(st.tries||0)+1;st.res={correct:!!r.correct,corrected:String(r.corrected||""),why:String(r.why||""),mg:String(r.mg||""),better:String(r.better||"")};
+  st.tries=(st.tries||0)+1;st.res={correct:!!r.correct,corrected:String(r.corrected||""),why:String(r.why||""),mg:String(r.mg||""),fr:String(r.fr||""),better:String(r.better||"")};
   st.err=null;st.pending=false;
   if(st.res.correct)st.ok=true;else if(st.res.corrected)S.mistakes=[`${text} → ${st.res.corrected}`,...(S.mistakes||[])].slice(0,20);
   save();renderWrite();

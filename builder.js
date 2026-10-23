@@ -262,7 +262,7 @@ function sbExerciseHTML(e) {
   if (e.t === "order") {
     if (!SB.chips) SB.chips = sbChips(e.a);
     const c = SB.chips, used = new Set(SB.built);
-    return `${e.mg ? `<h2>Say it in English: put the words in order.</h2><p class="wrongbox" style="border-color:var(--gold);background:var(--gold-soft);font-style:italic">${esc(e.mg)}</p><span class="mg">Adikao amin'ny teny anglisy: alaharo ireo teny ireo.</span>` : `<h2>Put the words in the right order.</h2><span class="mg">Alaharo tsara ireo teny ireo.</span>`}
+    return `${e.mg ? `<h2>Say it in English: put the words in order.</h2><p class="wrongbox" style="border-color:var(--gold);background:var(--gold-soft);font-style:italic">${esc(e.mg)}${e.fr ? `<span class="mg fr" lang="fr">${esc(e.fr)}</span>` : ""}</p><span class="mg">Adikao amin'ny teny anglisy: alaharo ireo teny ireo.</span>` : `<h2>Put the words in the right order.</h2><span class="mg">Alaharo tsara ireo teny ireo.</span>`}
      <div class="answerline" aria-label="Your sentence">${SB.built.map((wi, p) => `<button class="wchip on" data-act="sb-unpick" data-p="${p}" ${SB.answered ? "disabled" : ""}>${esc(c.words[wi])}</button>`).join("")}${SB.built.length ? `<span class="endmark">${esc(c.end)}</span>` : '<span class="muted" style="font-size:.9rem">Tap the words below</span>'}</div>
      <div class="wpool">${c.order.map((wi) => `<button class="wchip" data-act="sb-pick" data-w="${wi}" ${used.has(wi) || SB.answered ? "disabled" : ""}>${esc(c.words[wi])}</button>`).join("")}</div>
      ${SB.answered ? "" : `<div class="row"><button class="btn primary" data-act="sb-checkorder" ${SB.built.length === c.words.length ? "" : "disabled"} style="flex:1">Check · Hamarino</button><button class="btn ghost" data-act="sb-reset">Start again</button></div>`}`;
@@ -279,8 +279,8 @@ function sbRender() {
   if (SB.step === 0) {
     h += `<div class="stack"><div><p class="kicker">Unit ${SB_UNITS.findIndex((x) => x.id === u.id) + 1} of 16 · ${SB_STAGES[u.stage]}${u.hard ? " · Level 3+" : ""}</p><h1 style="margin-top:6px">${esc(u.title)}</h1></div>
      <p class="pattern">${esc(u.pattern)}</p>
-     <section class="panel stack tight"><p>${esc(u.en)}</p><span class="mg">${esc(u.mg)}</span></section>
-     ${u.plus ? `<section class="panel stack tight" style="border-color:var(--gold)"><p class="kicker">At your level · Amin'ny haavonao</p><p>${esc(u.plus)}</p><span class="mg">${esc(u.plusMg)}</span></section>` : ""}
+     <section class="panel stack tight"><p>${esc(u.en)}</p><span class="mg">${esc(u.mg)}</span>${frs(u.fr)}</section>
+     ${u.plus ? `<section class="panel stack tight" style="border-color:var(--gold)"><p class="kicker">At your level · Amin'ny haavonao</p><p>${esc(u.plus)}</p><span class="mg">${esc(u.plusMg)}</span>${frs(u.plusFr)}</section>` : ""}
      <section class="stack tight"><p class="kicker">Examples · Ohatra</p><ul class="exs">${u.examples.map((x, i) => `<li><button class="say" data-act="sb-say" data-i="${i}" aria-label="Listen">${ICON.spk}</button><span>${esc(x)}</span></li>`).join("")}</ul></section>
      <button class="btn primary" data-act="sb-next">Practise · Hanazatra (${u.ex.length} exercises)</button></div>`;
   } else if (SB.step === 1) {
@@ -298,7 +298,7 @@ function sbRender() {
     const o = SB.own, canTry = !o.res || (!o.res.correct && o.tries < 3);
     h += `<div class="stack"><div><p class="kicker">Your turn · Anjaranao</p><h2>${esc(u.task)}</h2></div><p class="pattern">${esc(u.pattern)}</p>
      <textarea id="sbOwn" class="textarea" style="min-height:96px" ${o.res ? "readonly" : ""} placeholder="Write here…">${esc(o.text)}</textarea>
-     <div aria-live="polite">${o.res ? (o.res.correct ? `<div class="fb ok"><b>Correct! · Marina!</b><p>${esc(o.res.why)}<span class="mg">${esc(o.res.mg)}</span></p></div>` : `<div class="fb no"><b>Not quite</b><p>${esc(o.res.why)}<span class="mg">${esc(o.res.mg)}</span></p></div><p class="corr">${esc(o.res.corrected)}</p>`) : o.err ? `<p class="muted">${esc(o.err)}</p>` : ""}</div>
+     <div aria-live="polite">${o.res ? (o.res.correct ? `<div class="fb ok"><b>Correct! · Marina!</b><p>${esc(o.res.why)}<span class="mg">${esc(o.res.mg)}</span>${frs(o.res.fr)}</p></div>` : `<div class="fb no"><b>Not quite</b><p>${esc(o.res.why)}<span class="mg">${esc(o.res.mg)}</span>${frs(o.res.fr)}</p></div><p class="corr">${esc(o.res.corrected)}</p>`) : o.err ? `<p class="muted">${esc(o.err)}</p>` : ""}</div>
      ${!o.res ? `<button class="btn primary" data-act="sb-own">${o.err ? "Check again" : "Check with the teacher"}${o.tries ? ` · try ${o.tries + 1} of 3` : ""}</button>` : canTry ? `<button class="btn primary" data-act="sb-owntry">Try again · try ${o.tries + 1} of 3</button>` : ""}
      <button class="${o.res && (o.res.correct || o.tries >= 3) ? "btn primary" : "link"}" data-act="sb-next" ${o.res && (o.res.correct || o.tries >= 3) ? "" : 'style="align-self:center"'}>${o.res ? "Finish · Vita" : "Skip and finish"}</button></div>`;
   } else {
@@ -318,7 +318,7 @@ async function sbOwnCheck() {
   if (text.split(/\s+/).length < 3) { o.err = "Write a full sentence first."; return sbRender(); }
   try {
     const r = await aiCall("sentence", { level: S.level || 1, grammar: SB.u.title + " (" + SB.u.pattern + ")", task: SB.u.task, sentence: text });
-    o.tries++; o.err = null; o.res = { correct: !!r.correct, corrected: String(r.corrected || ""), why: String(r.why || ""), mg: String(r.mg || "") };
+    o.tries++; o.err = null; o.res = { correct: !!r.correct, corrected: String(r.corrected || ""), why: String(r.why || ""), mg: String(r.mg || ""), fr: String(r.fr || "") };
     if (!o.res.correct && o.res.corrected) S.mistakes = [`${text} → ${o.res.corrected}`, ...(S.mistakes || [])].slice(0, 20);
     save();
   } catch (e) { o.err = aiMsg(e)[0] + " Your sentence is kept."; }
@@ -561,3 +561,54 @@ const SB_HARD = {
     ],
     task: "In 4–5 clear sentences, explain a problem at work and how you solved it. Use First, Then, However and As a result." },
 };
+
+/* ================= FRENCH (shown under the Malagasy) ================= */
+const SB_FR = {
+  sb01: ["En anglais, la personne ou la chose qui fait l'action vient en premier, puis le verbe, puis le complément. Le malgache commence par le verbe (Mamaky boky i Fara) ; l'anglais commence par la personne (Fara reads a book).",
+    "À votre niveau, le sujet et le complément deviennent plus longs, mais l'ordre ne change pas : tout le groupe sujet vient en premier (The new driver from Toamasina | delivered | forty bales…)."],
+  sb02: ["L'adjectif se place avant le nom : a big house, a new phone. En malgache, il vient après (trano lehibe). L'adjectif ne prend jamais de -s : two big houses.",
+    "Avec plusieurs adjectifs, l'ordre habituel est : opinion – taille – âge – couleur – matière + nom (a nice big old red wooden table). Un nom utilisé comme adjectif reste au singulier : a shoe shop, a two-hour meeting."],
+  sb03: ["Utilisez a ou an pour une chose mentionnée pour la première fois (a customer), et the pour une chose déjà connue (the customer de ce matin). Au pluriel, ajoutez -s : one box, two boxes. Les noms malgaches ne changent pas, les noms anglais oui.",
+    "Certains noms n'ont ni pluriel ni a/an : information, advice, furniture, equipment, money. Utilisez some, much ou a lot of. Pour une idée générale, pas d'article : Life is expensive (et non The life)."],
+  sb04: ["L'ordre habituel est : qui + verbe + quoi + où + quand. On peut aussi mettre le moment au début, suivi d'une virgule : Every Saturday, Fara sells clothes at the market.",
+    "Ordre complet : qui + verbe + quoi + comment + où + quand. Les mots de manière (well, quickly) se placent après le complément, jamais entre le verbe et le complément : He speaks English very well."],
+  sb05: ["Pour une question fermée, mettez Do ou Does (présent) ou Did (passé) avant le sujet : Do you work today? Après does et did, le verbe ne prend ni -s ni -ed.",
+    "Si la phrase contient have, be, can, will ou should, placez ce mot avant le sujet : Have you finished? Can she come? N'ajoutez jamais do : pas Does she can come?"],
+  sb06: ["Pour la négation, placez don't, doesn't ou didn't avant le verbe : I don't work on Sunday. Une seule négation par phrase, et après doesn't ou didn't le verbe ne prend ni -s ni -ed.",
+    "Une seule négation par phrase : I didn't see anything ou I saw nothing, jamais I didn't see nothing. Avec le present perfect : not … yet (The truck hasn't arrived yet). Après can't, won't, didn't : verbe simple."],
+  sb07: ["Avec un mot interrogatif : mot interrogatif + do/does/did + sujet + verbe (Where do you live?) ou mot interrogatif + be + sujet (Where is the manager?). Ne gardez pas l'ordre normal : pas Where you live?",
+    "Quand le mot interrogatif est le sujet, pas de do/does/did : Who called you? Mais : Who did you call? La préposition va à la fin : Who did you speak to?"],
+  sb08: ["Une phrase anglaise a toujours un sujet. Pour la météo, l'heure et la distance : It (It is raining). Pour dire « il y a » : There is / There are. En malgache il n'y a souvent pas de sujet, d'où des erreurs comme « Is raining ».",
+    "Aussi : It is + adjectif + to … (It is important to check), There has been / There will be (passé et futur), It takes + durée + to … (It takes three days to get there)."],
+  sb09: ["Always, usually, often, sometimes et never se placent avant le verbe principal (I always check the stock) mais après am, is, are (She is never late).",
+    "Avec un auxiliaire (have, be, can, will), ces mots se placent après le premier auxiliaire : I have always lived here, She is still working. Already se place avant le verbe principal : She has already finished."],
+  sb10: ["And ajoute, but oppose, so exprime une conséquence. Mettez une virgule avant but et so quand ils relient deux phrases complètes : The price is good, but the quality is low.",
+    "N'enchaînez pas plusieurs so et ne commencez pas une phrase par And. À l'écrit formel, utilisez therefore ou as a result à la place de so."],
+  sb11: ["Because donne une raison, when donne un moment. Cette partie peut venir en second, ou en premier suivie d'une virgule (When the truck arrives, call me). Après when, on utilise le présent même pour le futur.",
+    "because + phrase, because of + nom : because it rained / because of the rain. Aussi : while, until, as soon as, before, after. Après when, until, as soon as, before et after : présent pour parler du futur."],
+  sb12: ["Who pour les personnes, which ou that pour les choses, pour ajouter une information sur un nom : The man who called is our supplier. Ne répétez pas he/she/it après who ou which.",
+    "whose = dont, à qui (the supplier whose prices are low) ; where = lieu (the warehouse where we keep the bales). Une information en plus se met entre virgules avec who ou which, jamais that. Ne répétez pas le complément : pas the products that we ordered them."],
+  sb13: ["Although relie deux idées dans une même phrase : Although the price is high, customers buy it. However commence une nouvelle phrase et est suivi d'une virgule. Whereas compare deux choses. N'utilisez jamais although et but ensemble.",
+    "despite / in spite of + nom ou -ing (despite the rain) ; even though + phrase (even though it rained) ; whereas compare deux choses ; nevertheless = however, en plus formel."],
+  sb14: ["Possibilité réelle : If + présent, will + verbe (If it rains, we will close early). Situation imaginaire : If + passé, would + verbe (If I had more money, I would open a second shop). Jamais will ou would après if.",
+    "unless = si … ne … pas. Erreur passée : If + had + participe passé, would have + participe passé (If we had checked, we would have seen it). Cause passée, résultat présent : If she had studied earlier, she would have a better job now."],
+  sb15: ["Dans les questions polies qui commencent par Could you tell me ou Do you know, la deuxième partie garde l'ordre normal (sujet avant verbe) et n'a pas de do/does/did : Could you tell me where the bank is?",
+    "Autres débuts polis : Could you let me know …, I wonder …, Would you mind telling me …, Do you know if … Dans une question rapportée, le temps recule : She asked where the invoice was."],
+  sb16: ["Une virgule seule ne peut pas relier deux phrases complètes. Utilisez un point ou un mot de liaison (and, but, so, because, which). Une idée principale par phrase, et des liens entre les phrases : First, Then, Finally, As a result.",
+    "Gardez la même forme dans une liste (reading, cooking and swimming). Une phrase complète a un sujet et un verbe conjugué. However et Therefore commencent une nouvelle phrase ou suivent un point-virgule."],
+};
+const SB_MG_FR = {
+  "Mamaky ny tatitra isa-maraina ny talen'ny orinasa.": "Le directeur de l'entreprise lit le rapport tous les matins.",
+  "Mividy entana amin'ny mpamatsy any Korea izahay.": "Nous achetons des marchandises à un fournisseur en Corée.",
+  "Nividy fiara kely mena izy.": "Elle a acheté une petite voiture rouge.",
+  "Nandoa ny faktiora tany amin'ny banky omaly hariva aho.": "J'ai payé la facture à la banque hier soir.",
+  "Efa nandoa ny vola ve ny mpanjifa?": "Le client a-t-il payé l'argent ?",
+  "Tsy mbola tonga ny kamiao.": "Le camion n'est pas encore arrivé.",
+  "Rahoviana no halefa ny entana?": "Quand les marchandises seront-elles envoyées ?",
+  "Sarotra ny mahita mpiasa mahay.": "Il est difficile de trouver des employés qualifiés.",
+};
+SB_UNITS.forEach((u) => { if (SB_FR[u.id]) u.fr = SB_FR[u.id][0]; });
+Object.keys(SB_HARD).forEach((id) => {
+  if (SB_FR[id]) SB_HARD[id].plusFr = SB_FR[id][1];
+  SB_HARD[id].ex.forEach((e) => { if (e.mg && SB_MG_FR[e.mg]) e.fr = SB_MG_FR[e.mg]; });
+});
