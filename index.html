@@ -1011,7 +1011,6 @@ function home(){
  }else if(TAB==="practice"){
   body=`<div><h1>Practice</h1><p class="muted">Build all four skills and your grammar. You need all of them to move up a level.<span class="mg">Ampitomboy ny fahaizana efatra sy ny fitsipi-pitenenana.</span></p></div>
    ${typeof skillsTiles==="function"?skillsTiles():""}
-   ${typeof wordBankCard==="function"?wordBankCard():""}
    ${hardN?`<section class="panel row" style="justify-content:space-between"><div><h3>Difficult words</h3><p class="muted">${hardN} word${hardN>1?"s":""} to practise</p></div><button class="btn" data-act="review">Practise</button></section>`:""}
    ${weak.length?`<div class="stack tight"><p class="kicker">Your focus from the level test</p><div class="chips">${weak.map(x=>`<span class="chip">${SEC[x].en}</span>`).join("")}</div></div>`:""}`;
  }else if(TAB==="progress"){
@@ -1387,17 +1386,16 @@ function sentResult(st){const r=st.res;
   <div class="stack tight" style="margin-top:12px"><p class="kicker">The correct way · Ny fomba marina</p><div class="row" style="flex-wrap:nowrap;align-items:flex-start"><p class="corr" style="flex:1;min-width:0">${esc(r.corrected)}</p><button class="say" data-act="dsaycorr" aria-label="Listen to the correct sentence">${ICON.spk}</button></div></div>`}
 function renderWrite(){
  const d=S.daily,n=d.keys.length,k=d.keys[d.wi||0];if(!k){d.redo=false;return finishDaily()}
- const v=S.vocab[k],st=d.sent[k]||{},last=d.wi===n-1,canRetry=st.res&&!st.res.correct&&!st.res.local,prev=d.wi>0&&!d.redo?`<button class="link" data-act="dprev" style="align-self:center">← Previous word</button>`:"";
+ const v=S.vocab[k],st=d.sent[k]||{},last=d.wi===n-1,canRetry=st.res&&!st.res.correct&&!st.res.local&&(st.tries||0)<3;
  let btns;
  if(!st.res&&st.err)btns=`<button class="btn primary" data-act="dcheck">Check again · Hamarino indray</button><button class="link" data-act="dlater" style="align-self:center">Check it later and go to the ${last?"summary":"next word"}</button>`;
  else if(!st.res)btns=`<button class="btn primary" data-act="dcheck">Check my sentence · Hamarino</button><button class="link" data-act="dskip" style="align-self:center">Skip this word</button>`;
  else if(canRetry)btns=`<button class="btn primary" data-act="dtry">Try again · Andramo indray</button><button class="link" data-act="dwnext" style="align-self:center">${last?"Finish":"Next word"}</button>`;
- else btns=`<button class="btn primary" data-act="dwnext">${last?"Finish · Vita":"Next word · Teny manaraka"}</button>${st.res&&st.res.correct?`<button class="link" data-act="dmore" style="align-self:center">Write another sentence with this word</button>`:""}`;
- btns+=prev;
+ else btns=`<button class="btn primary" data-act="dwnext">${last?"Finish · Vita":"Next word · Teny manaraka"}</button>`;
  view.innerHTML=dailyTop(d.wi/n,`${d.wi+1}/${n}`)+`<div class="stack">
   <div><p class="kicker">Make a sentence · Manaova fehezanteny</p><h2>Write your own sentence with “${esc(v.en)}”</h2><span class="mg">Manorata fehezanteny misy ny teny “${esc(v.en)}” (${esc(v.mg)}).</span></div>
   <details class="panel"><summary class="muted" style="cursor:pointer;font-weight:700">See the meaning and examples again</summary><div class="stack tight" style="margin-top:10px"><p>${esc(v.def)}</p>${exList(v)}</div></details>
-  <label for="sentBox" class="muted" style="font-size:.9rem">Your sentence${st.tries?` · try ${st.tries+(st.res?0:1)}`:""}</label>
+  <label for="sentBox" class="muted" style="font-size:.9rem">Your sentence${st.tries?` · try ${Math.min(st.tries+(st.res?0:1),3)} of 3`:""}</label>
   <textarea id="sentBox" class="textarea" style="min-height:96px" placeholder="Write one sentence about your life…" ${st.res?"readonly":""}>${esc(st.text||"")}</textarea>
   <div id="sentRes" class="stack tight" aria-live="polite">${st.res?sentResult(st):st.err?`<div class="fb no"><b>Not checked yet</b><p>${esc(st.err[0])} Your sentence is saved. When you are back online, tap “Check again”.<span class="mg">${esc(st.err[1])} Voatahiry ny fehezantenyo. Tsindrio “Check again” rehefa misy internet.</span></p></div>`:""}</div>
   ${btns}</div>`;
@@ -1513,8 +1511,6 @@ document.addEventListener("click",e=>{
   case "dtry":{const d=S.daily,st=d.sent[d.keys[d.wi]];st.res=null;save();renderWrite();const t=document.getElementById("sentBox");if(t){t.focus();t.setSelectionRange(t.value.length,t.value.length)}break}
   case "dskip":{const d=S.daily,k=d.keys[d.wi];d.sent[k]=Object.assign(d.sent[k]||{},{skipped:true});nextWrite();break}
   case "dwnext":nextWrite();break;
-  case "dprev":S.daily.wi=Math.max(0,S.daily.wi-1);save();renderWrite();break;
-  case "dmore":{const d=S.daily,st=d.sent[d.keys[d.wi]];st.res=null;st.text="";save();renderWrite();const t=document.getElementById("sentBox");if(t)t.focus();break}
   case "dlater":nextWrite();break;
   case "dpending":{const d=S.daily,p=pendingKeys();if(!p.length)break;d.phase="write";d.redo=true;d.wi=d.keys.indexOf(p[0]);save();renderDaily();break}
   case "dailysummary":dailySummary();break;
