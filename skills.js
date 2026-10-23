@@ -633,3 +633,80 @@ document.addEventListener("click", (e) => {
 document.addEventListener("input", (e) => {
   if (e.target.id === "wrBox" && SK.wr) { SK.wr.text = e.target.value; const c = document.getElementById("wrCount"); if (c) c.textContent = `${wc(e.target.value)} words`; S.wdrafts = S.wdrafts || {}; S.wdrafts[SK.wr.t.id] = e.target.value; persistLocal(); }
 });
+
+/* ================= WORD BANK: every daily word, with unlimited sentence practice ================= */
+function wordBankCard() {
+  const n = Object.keys(S.vocab || {}).length; if (!n) return "";
+  return `<section class="panel row" style="justify-content:space-between"><div><h3>My word bank</h3><p class="muted">${n} word${n > 1 ? "s" : ""} from daily words. Practise any word again.</p></div><button class="btn" data-act="sk-wb">Open</button></section>`;
+}
+function wbRows(filter) {
+  const f = String(filter || "").trim().toLowerCase();
+  const keys = Object.keys(S.vocab || {}).sort((a, b) => (S.vocab[a].added < S.vocab[b].added ? 1 : -1));
+  const rows = keys.filter((k) => !f || S.vocab[k].en.toLowerCase().includes(f) || String(S.vocab[k].mg).toLowerCase().includes(f)).map((k) => {
+    const v = S.vocab[k], hard = k in (S.hard || {});
+    return `<button class="les${v.sok ? " done" : ""}" data-act="sk-wbopen" data-k="${k}"><span class="n">${v.sok ? "✓" : "✎"}</span><span class="t"><b>${esc(v.en)}</b><small>${esc(v.mg)}</small></span>${hard ? '<span class="chip">difficult</span>' : ""}</button>`;
+  }).join("");
+  return rows || '<p class="muted">No word found.</p>';
+}
+function wordBankHome() {
+  window.scrollTo(0, 0);
+  view.innerHTML = skTop("My word bank · Teny fantatro") + `<div class="stack">
+   <div><h1>My word bank</h1><p class="muted">Tap a word to see it again and write new sentences. The teacher checks every sentence.<span class="mg">Tsindrio ny teny iray hijerena azy indray sy hanoratana fehezanteny vaovao.</span></p></div>
+   <input id="wbFilter" class="input" type="search" placeholder="Find a word…" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Find a word">
+   <div class="stack tight" id="wbList">${wbRows("")}</div></div>`;
+}
+function wordPractice(k, keepText) {
+  const v = S.vocab[k]; if (!v) return;
+  if (!keepText) SK.wb = { k, text: "", res: null, err: null, tries: 0 };
+  const w = SK.wb; window.scrollTo(0, 0);
+  const result = w.res
+    ? w.res.correct
+      ? `<div class="fb ok"><b>Correct! · Marina!</b><p>${esc(w.res.why)}<span class="mg">${esc(w.res.mg)}</span></p>${w.res.better ? `<p style="margin-top:6px"><b style="font-size:1rem">A more natural way:</b> ${esc(w.res.better)}</p>` : ""}</div>`
+      : `<div class="fb no"><b>Not quite · Tsy dia marina</b><p>${esc(w.res.why)}<span class="mg">${esc(w.res.mg)}</span></p></div><div class="stack tight"><p class="kicker">The correct way · Ny fomba marina</p><div class="row" style="flex-wrap:nowrap;align-items:flex-start"><p class="corr" style="flex:1;min-width:0">${esc(w.res.corrected)}</p><button class="say" data-act="sk-wbsaycorr" aria-label="Listen">${ICON.spk}</button></div></div>`
+    : w.err ? `<p class="muted">${esc(w.err)}</p>` : "";
+  const btns = !w.res
+    ? `<button class="btn primary" data-act="sk-wbcheck">${w.err ? "Check again" : "Check my sentence · Hamarino"}</button>`
+    : `<button class="btn primary" data-act="sk-wbagain" data-keep="${w.res.correct ? "0" : "1"}">${w.res.correct ? "Write another sentence" : "Try again · Andramo indray"}</button>`;
+  view.innerHTML = skTop("Word practice", "sk-wb") + `<div class="stack">
+   <section class="fcard"><div class="head"><div><span class="fword">${esc(v.en)}</span>${v.pos ? `<span class="pos">${esc(v.pos)}</span>` : ""}</div><button class="say" data-act="sk-wbsay" aria-label="Listen">${ICON.spk}</button></div>
+    <span class="say-as">${esc(v.say)}</span>
+    <dl class="trans"><dt>MG</dt><dd><b>${esc(v.mg)}</b></dd><dt>FR</dt><dd>${esc(v.fr)}</dd><dt>EN</dt><dd>${esc(v.def)}</dd></dl>
+    <p class="kicker">Examples · Ohatra</p><ul class="exs">${(v.ex || []).map((x, i) => `<li><button class="say" data-act="sk-wbsayex" data-i="${i}" aria-label="Listen">${ICON.spk}</button><span>${esc(x)}</span></li>`).join("")}</ul></section>
+   <label for="wbBox"><b>Your sentence with “${esc(v.en)}”</b>${w.tries ? ` <span class="muted">· try ${w.tries + (w.res ? 0 : 1)}</span>` : ""}${v.sok ? ` <span class="chip ok">${v.sok} correct so far</span>` : ""}</label>
+   <textarea id="wbBox" class="textarea" style="min-height:96px" placeholder="Write one sentence about your life or work…" ${w.res ? "readonly" : ""}>${esc(w.text)}</textarea>
+   <div class="stack tight" aria-live="polite">${result}</div>${btns}
+   <button class="btn" data-act="sk-wb" style="width:100%;min-height:50px">Back to my word bank</button></div>`;
+}
+async function wordCheck() {
+  const w = SK.wb, v = S.vocab[w.k], box = document.getElementById("wbBox"), text = box.value.trim();
+  w.text = box.value;
+  if (wc(text) < 3) { w.err = "Write a full sentence (at least 3 words)."; return wordPractice(w.k, true); }
+  const flat = (x) => String(x).toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();
+  if ((v.ex || []).some((x) => flat(x) === flat(text))) { w.err = "That is one of the examples. Write your own sentence."; return wordPractice(w.k, true); }
+  const btn = view.querySelector('[data-act="sk-wbcheck"]'); if (btn) { btn.disabled = true; btn.textContent = "The teacher is checking…"; }
+  try {
+    const r = await aiCall("sentence", { level: S.level || 1, word: v.en, def: v.def, sentence: text });
+    w.tries++; w.err = null;
+    w.res = { correct: !!r.correct, corrected: String(r.corrected || ""), why: String(r.why || ""), mg: String(r.mg || ""), better: String(r.better || "") };
+    if (w.res.correct) { v.sok = (v.sok || 0) + 1; if (S.hard && w.k in S.hard) { S.hard[w.k]++; if (S.hard[w.k] >= 2) delete S.hard[w.k]; } }
+    else { S.hard = S.hard || {}; S.hard[w.k] = 0; if (w.res.corrected) S.mistakes = [`${text} → ${w.res.corrected}`, ...(S.mistakes || [])].slice(0, 20); }
+    markDay(); save();
+  } catch (e) { w.err = aiMsg(e)[0] + " Your sentence is kept; tap Check again."; }
+  wordPractice(w.k, true);
+}
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  switch (b.dataset.act) {
+    case "sk-wb": wordBankHome(); break;
+    case "sk-wbopen": wordPractice(b.dataset.k); break;
+    case "sk-wbsay": say(S.vocab[SK.wb.k].en); break;
+    case "sk-wbsayex": say(S.vocab[SK.wb.k].ex[+b.dataset.i]); break;
+    case "sk-wbsaycorr": if (SK.wb.res) say(SK.wb.res.corrected, false); break;
+    case "sk-wbcheck": wordCheck(); break;
+    case "sk-wbagain": { const w = SK.wb; w.res = null; if (b.dataset.keep !== "1") w.text = ""; wordPractice(w.k, true); const t = document.getElementById("wbBox"); if (t) t.focus(); break; }
+  }
+});
+document.addEventListener("input", (e) => {
+  if (e.target.id === "wbFilter") { const l = document.getElementById("wbList"); if (l) l.innerHTML = wbRows(e.target.value); }
+  if (e.target.id === "wbBox" && SK.wb) SK.wb.text = e.target.value;
+});
