@@ -288,8 +288,11 @@ function sbRender() {
     h += `<div class="stack"><div class="row" style="justify-content:space-between"><p class="kicker">Exercise ${SB.i + 1} of ${n}</p><span class="muted" style="font-size:.85rem">${SB.right} correct</span></div>${sbExerciseHTML(e)}`;
     if (SB.answered) {
       const model = e.t === "mc" ? null : e.t === "order" ? e.a : e.a[0];
-      h += `<div class="fb ${SB.ok ? "ok" : "no"}"><b>${SB.ok ? "Correct! · Marina!" : "Not quite · Tsy dia marina"}</b>${model && !SB.ok ? `<p><b>Correct:</b> ${esc(model)}</p>` : ""}${model && SB.ok && SB.self ? "<p>Counted as correct.</p>" : ""}</div>
-       ${!SB.ok && (e.t === "fix" || e.t === "combine") ? `<button class="link" data-act="sb-self" style="align-self:flex-start">My answer means the same and is correct, count it</button>` : ""}
+      const mine = sbLearnerAnswer(e);
+      h += `<div class="fb ${SB.ok ? "ok" : "no"}"><b>${SB.ok ? "Correct! · Marina!" : "Not quite · Tsy dia marina"}</b>${!SB.ok && mine ? `<p><b>Your answer:</b> ${esc(mine)}</p>` : ""}${model && !SB.ok ? `<p><b>Correct:</b> ${esc(model)}</p>` : ""}${SB.ok && SB.self ? "<p>Counted as correct.</p>" : ""}</div>
+       ${SB.expl ? `<div class="fb ${SB.expl.also ? "ok" : "no"}" style="background:var(--surface);border:1.5px solid var(--line)"><b style="color:var(--ink)">${SB.expl.also ? "Your answer is also correct ✓" : "Why? · Nahoana?"}</b><p>${esc(SB.expl.why)}<span class="mg">${esc(SB.expl.mg)}</span>${frs(SB.expl.fr)}</p></div>`
+         : !SB.ok && !SB.self ? `<button class="btn" data-act="sb-why" style="width:100%">Explain my mistake · Hazavao ny fahadisoako</button>${SB.explErr ? `<p class="muted" style="font-size:.9rem">${esc(SB.explErr)}</p>` : ""}` : ""}
+       ${!SB.ok && !SB.expl && (e.t === "fix" || e.t === "combine") ? `<button class="link" data-act="sb-self" style="align-self:flex-start">My answer means the same and is correct, count it</button>` : ""}
        ${model ? `<div class="row"><button class="iconbtn" data-act="sb-saymodel">${ICON.spk} Listen to the correct sentence</button></div>` : ""}
        <button class="btn primary" data-act="sb-ex">${SB.i === n - 1 ? "Next: your turn" : "Next exercise"}</button>`;
     }
@@ -311,6 +314,25 @@ function sbRender() {
      <button class="btn" data-act="sb-home" style="width:100%;min-height:50px">All units</button></div>`;
   }
   view.innerHTML = h;
+}
+/* What the learner answered, as text (used to show it and to explain the mistake). */
+function sbLearnerAnswer(e) {
+  if (e.t === "mc") return SB.pick != null ? e.o[SB.pick] : "";
+  if (e.t === "order") return SB.chips ? SB.built.map((i) => SB.chips.words[i]).join(" ") + SB.chips.end : "";
+  return SB.typed || "";
+}
+async function sbExplain() {
+  const e = SB.u.ex[SB.i], btn = view.querySelector('[data-act="sb-why"]');
+  if (btn) { btn.disabled = true; btn.textContent = "The teacher is explaining…"; }
+  const correct = e.t === "mc" ? e.o[e.a] : e.t === "order" ? e.a : e.a[0];
+  const question = e.t === "mc" ? e.q + " Options: " + e.o.join(" | ") : e.t === "order" ? (e.mg ? "Translate by putting the words in order: " + e.mg : "Put the words in order.") : e.t === "fix" ? "Correct this sentence: " + e.q : "Join " + [].concat(e.q).join(" / ") + " using " + e.use;
+  try {
+    const r = await aiCall("sbexplain", { level: S.level || 1, unit: SB.u.title, pattern: SB.u.pattern, rule: SB.u.en + (SB.u.plus ? " " + SB.u.plus : ""), type: e.t, question, correct, alts: e.t === "order" ? e.alt || [] : e.t === "mc" ? [] : e.a.slice(1), answer: sbLearnerAnswer(e) });
+    SB.expl = { also: !!r.also_correct && e.t !== "mc", why: String(r.why || ""), mg: String(r.mg || ""), fr: String(r.fr || "") };
+    SB.explErr = null;
+    if (SB.expl.also && !SB.ok) { SB.ok = true; SB.right++; }
+  } catch (err) { SB.explErr = aiMsg(err)[0]; }
+  sbRender();
 }
 function sbAnswerCheck(text, answers) { const t = normAns(text); return answers.some((a) => normAns(a) === t); }
 async function sbOwnCheck() {
@@ -340,7 +362,8 @@ document.addEventListener("click", (ev) => {
     case "sb-checktype": { const v = document.getElementById("sbAns").value; if (!v.trim()) break; SB.typed = v; SB.answered = true; SB.ok = sbAnswerCheck(v, e.a); if (SB.ok) SB.right++; sbRender(); break; }
     case "sb-self": if (!SB.ok) { SB.ok = true; SB.self = true; SB.right++; sbRender(); } break;
     case "sb-saymodel": say(e.t === "order" ? e.a : e.a[0], false); break;
-    case "sb-ex": SB.answered = false; SB.ok = false; SB.self = false; SB.pick = null; SB.typed = ""; SB.chips = null; SB.built = []; SB.i++; if (SB.i >= SB.u.ex.length) SB.step = 2; sbRender(); break;
+    case "sb-why": sbExplain(); break;
+    case "sb-ex": SB.expl = null; SB.explErr = null; SB.answered = false; SB.ok = false; SB.self = false; SB.pick = null; SB.typed = ""; SB.chips = null; SB.built = []; SB.i++; if (SB.i >= SB.u.ex.length) SB.step = 2; sbRender(); break;
     case "sb-own": sbOwnCheck(); break;
     case "sb-owntry": SB.own.res = null; sbRender(); break;
   }

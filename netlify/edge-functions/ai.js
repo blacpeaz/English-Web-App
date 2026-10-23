@@ -222,6 +222,11 @@ const SCHEMAS = {
       tip_mg: S,
     },
   },
+  sbexplain: {
+    type: "object",
+    required: ["also_correct", "why", "mg"],
+    properties: { also_correct: { type: "boolean" }, why: S, mg: S },
+  },
   sentence: {
     type: "object",
     required: ["correct", "uses_word", "corrected", "why", "mg", "better"],
@@ -357,6 +362,20 @@ function buildBase(task, p) {
         `pos = part of speech (noun, verb, adjective, adverb, phrase, phrasal verb, idiom); mg = correct, natural standard Malagasy (if there is no direct word, a short Malagasy explanation); ` +
         `fr = French; def = a simple English definition; examples = exactly 3 different natural sentences that show how the word is used, each short and right for the level, at least one about daily life in Madagascar.`,
       user: JSON.stringify({ level: lv, count: n, theme: str(p.theme, 60), difficult_words_to_avoid_repeating: list(p.hard, 30, 40), already_known: list(p.known, 500, 40) }),
+    };
+  }
+  if (task === "sbexplain") {
+    const lv = level(p.level);
+    return {
+      system:
+        `You are a patient English teacher explaining one exercise to a learner. ${LEARNER}\n` +
+        `The exercise practises this sentence pattern: "${str(p.unit, 120)}" (${str(p.pattern, 120)}). Rule taught: ${str(p.rule, 600)}\n` +
+        `The learner's answer was marked wrong. Return JSON matching the schema:\n` +
+        `- also_correct: true ONLY if the learner's answer is fully correct English AND means the same as the expected answer (small differences in punctuation or capital letters do not matter). Otherwise false.\n` +
+        `- why: 2-4 short, simple English sentences for CEFR ${CEFR[lv]}. Point to the exact words that are different. Say what is wrong in the learner's answer and why the expected answer is right, using the rule. ` +
+        `If the learner's sentence is correct English but means something different (for example, who does the action changes), say that clearly and explain the difference in meaning. If also_correct is true, say that their answer is also correct.\n` +
+        `- mg: the same explanation in short, simple Malagasy.`,
+      user: JSON.stringify({ exercise_type: str(p.type, 20), instruction_or_question: str(p.question, 400), expected_answer: str(p.correct, 300), other_accepted_answers: list(p.alts, 5, 300), learner_answer: str(p.answer, 400) }),
     };
   }
   if (task === "sentence" && p.grammar) {
@@ -497,6 +516,7 @@ const LIMITS = {
   levelup: { fast: false, max: 7000 },
   words: { fast: false, max: 4500, light: true, gemini: true },
   sentence: { fast: false, max: 900, light: true, gemini: true },
+  sbexplain: { fast: false, max: 900, light: true, gemini: true },
 };
 
 // ---------- Google Gemini (free tier) for small jobs ----------
