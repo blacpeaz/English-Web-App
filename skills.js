@@ -473,15 +473,15 @@ function voiceFor(kind) {
 }
 function listenRate() { const lv = S.level || 1; return SK.ls && SK.ls.slow ? 0.72 : [0, 0.85, 0.9, 0.95, 1, 1.05][lv]; }
 function playScript(lines, onDone) {
-  if (!TTS) return; speechSynthesis.cancel();
+  if (!TTS) return;
   const ls = SK.ls, spk = {}; (ls.data.speakers || []).forEach((s) => { spk[s.name] = s.voice; });
-  lines.forEach((l, i) => {
+  speakQueue(lines.map((l, i) => Object.assign(() => {
     const u = new SpeechSynthesisUtterance(l.text); const kind = spk[l.who] || "female"; const v = voiceFor(kind);
     if (v) { u.voice = v; u.lang = v.lang; } else u.lang = "en-GB";
     u.rate = listenRate(); u.pitch = v && VOICE && v.voiceURI !== VOICE.voiceURI ? 1 : kind === "male" ? 0.8 : 1.2;
     if (i === lines.length - 1 && onDone) u.onend = onDone;
-    speechSynthesis.speak(u);
-  });
+    return u;
+  }, { len: l.text.length })));
 }
 function listenHome() {
   window.scrollTo(0, 0);
@@ -620,7 +620,7 @@ document.addEventListener("click", (e) => {
     case "sk-lnext": if (TTS) speechSynthesis.cancel(); SK.ls.step++; renderListen(); break;
     case "sk-lans": { const ls = SK.ls, q = ls.data.qs[ls.qi]; if (ls.answered) break; ls.pick = +b.dataset.i; ls.answered = true; if (ls.pick === q.a) ls.right++; renderListen(); break; }
     case "sk-lq": { const ls = SK.ls; ls.answered = false; ls.pick = null; ls.qi++; if (ls.qi >= ls.data.qs.length) ls.step = 2; renderListen(); break; }
-    case "sk-dplay": case "sk-dslow": { const ls = SK.ls, s = ls.data.dictation[ls.di]; if (!TTS || !s) break; speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(s); if (VOICE) { u.voice = VOICE; u.lang = VOICE.lang; } u.rate = a === "sk-dslow" ? 0.65 : listenRate(); u.pitch = S.pitch || 1.15; speechSynthesis.speak(u); break; }
+    case "sk-dplay": case "sk-dslow": { const ls = SK.ls, s = ls.data.dictation[ls.di]; if (!TTS || !s) break; speakQueue([() => { const u = new SpeechSynthesisUtterance(s); if (VOICE) { u.voice = VOICE; u.lang = VOICE.lang; } u.rate = a === "sk-dslow" ? 0.65 : listenRate(); u.pitch = S.pitch || 1.15; return u; }]); break; }
     case "sk-dcheck": { const ls = SK.ls, s = ls.data.dictation[ls.di], v = document.getElementById("dictBox").value; if (!v.trim()) break; const c = compare(s, v); ls.dict[ls.di] = { text: v, ok: c.ok, score: Math.round(c.score * 100) }; renderListen(); break; }
     case "sk-dnext": { const ls = SK.ls; ls.di++; if (ls.di >= Math.min(3, (ls.data.dictation || []).filter(Boolean).length)) ls.step = 4; renderListen(); break; }
     case "sk-write": writeHome(); break;

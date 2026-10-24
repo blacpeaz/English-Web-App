@@ -258,6 +258,12 @@ body.has-tabs .app{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 .wrongbox{background:var(--red-soft);border:1.5px solid var(--red);border-radius:10px;padding:12px 14px;font-size:1.05rem}
 .mg.fr{font-style:normal}
 .mg.fr::before{content:"FR";display:inline-block;font-size:.62rem;font-weight:700;letter-spacing:.06em;border:1px solid var(--line);border-radius:4px;padding:0 4px;margin-right:6px;vertical-align:1px}
+.player{position:fixed;left:0;right:0;bottom:0;z-index:16;display:flex;align-items:center;gap:8px;background:var(--surface);border-top:1.5px solid var(--line);box-shadow:0 -6px 18px rgba(0,0,0,.12);padding-top:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+.player.above-tabs{bottom:calc(61px + env(safe-area-inset-bottom,0px));padding-bottom:10px}
+body.has-player .app{padding-bottom:calc(150px + env(safe-area-inset-bottom,0px))}
+.pl-label{flex:1;min-width:0;font-weight:700;font-size:.92rem}
+.pl-label small{color:var(--muted);font-variant-numeric:tabular-nums}
+.btn.pl-btn{width:auto;min-height:44px;padding:8px 14px;font-size:.95rem;border-radius:999px}
 .confirm{background:var(--red-soft);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
 </style>
 </head>
@@ -265,6 +271,7 @@ body.has-tabs .app{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 
 <div class="app"><main id="view"></main></div>
 <nav id="tabbar" class="tabbar" aria-label="Main" hidden></nav>
+<div id="player" class="player" role="region" aria-label="Reading controls" hidden></div>
 <div id="sheetHost"></div>
 
 <script src="skills.js"></script>
@@ -898,8 +905,46 @@ if(TTS){pickVoice();speechSynthesis.onvoiceschanged=pickVoice}
 function utter(t,slow){const u=new SpeechSynthesisUtterance(clean(t));u.lang=VOICE?VOICE.lang:"en-GB";if(VOICE)u.voice=VOICE;const base=S.rate||0.92;u.rate=slow?base*0.74:base;u.pitch=S.pitch||1.15;return u}
 /* French partner line shown under a Malagasy explanation (only when there is one). */
 function frs(t){return t?`<span class="mg fr" lang="fr">${esc(t)}</span>`:""}
-function say(t,slow){if(!TTS)return;speechSynthesis.cancel();speechSynthesis.speak(utter(t,slow===undefined?S.slow:slow))}
-function playLines(lines){if(!TTS)return;speechSynthesis.cancel();lines.forEach((t,i)=>{const u=utter(t,S.slow);u.onstart=()=>hl(i);u.onend=()=>{if(i===lines.length-1)hl(-1)};speechSynthesis.speak(u)})}
+/* ===== Speech player: everything read aloud goes through one queue, so it can be paused, resumed and stopped.
+   Pause stops the voice and remembers the sentence it was on; Resume starts again from that sentence
+   (the browser's own pause is unreliable on iPhone and some Android phones). ===== */
+const PLAY={q:[],i:0,state:"idle",tok:0,big:false};
+function splitSentences(t){return String(clean(t)).replace(/([.!?])\s+(?=[A-Z0-9"“'])/g,"$1\u0001").split("\u0001").filter(x=>x.trim())}
+function speakQueue(factories){
+ if(!TTS||!factories.length)return;
+ PLAY.tok++;speechSynthesis.cancel();
+ PLAY.q=factories;PLAY.i=0;PLAY.state="playing";PLAY.big=factories.length>1||(factories[0].len||0)>60;
+ playFrom();
+}
+function playFrom(){
+ const tok=++PLAY.tok;
+ for(let k=PLAY.i;k<PLAY.q.length;k++){
+  const u=PLAY.q[k](),st=u.onstart,en=u.onend;
+  u.onstart=e=>{if(tok!==PLAY.tok)return;PLAY.i=k;if(st)st(e);syncPlayer()};
+  u.onend=e=>{if(tok!==PLAY.tok)return;if(en)en(e);if(k===PLAY.q.length-1){PLAY.state="idle";syncPlayer()}};
+  speechSynthesis.speak(u);
+ }
+ syncPlayer();
+}
+function pausePlay(){if(PLAY.state!=="playing")return;PLAY.tok++;PLAY.state="paused";speechSynthesis.cancel();syncPlayer()}
+function resumePlay(){if(PLAY.state!=="paused")return;PLAY.state="playing";playFrom()}
+function stopPlay(){PLAY.tok++;PLAY.state="idle";if(TTS)speechSynthesis.cancel();hl(-1);syncPlayer()}
+function syncPlayer(){
+ const bar=document.getElementById("player");if(!bar)return;
+ const show=PLAY.big&&PLAY.state!=="idle";bar.hidden=!show;document.body.classList.toggle("has-player",show);if(!show)return;
+ const tabs=!document.getElementById("tabbar").hidden;bar.classList.toggle("above-tabs",tabs);
+ bar.innerHTML=`<span class="pl-label">${PLAY.state==="paused"?"Paused · Najanona":"Reading… · Mamaky…"}${PLAY.q.length>1?` <small>${PLAY.i+1}/${PLAY.q.length}</small>`:""}</span>
+  ${PLAY.state==="paused"?`<button class="btn primary pl-btn" data-act="pl-resume">▶ Resume</button>`:`<button class="btn primary pl-btn" data-act="pl-pause">❚❚ Pause</button>`}
+  <button class="btn ghost pl-btn" data-act="pl-stop" aria-label="Stop reading">■ Stop</button>`;
+}
+/* If something else stops the voice (leaving a screen), hide the bar. */
+setInterval(()=>{if(PLAY.state==="playing"&&TTS&&!speechSynthesis.speaking&&!speechSynthesis.pending){PLAY.state="idle";hl(-1);syncPlayer()}},800);
+function say(t,slow){
+ if(!TTS)return;const sl=slow===undefined?S.slow:slow;
+ const parts=splitSentences(t);
+ speakQueue(parts.map(x=>Object.assign(()=>utter(x,sl),{len:x.length})));
+}
+function playLines(lines){if(!TTS)return;speakQueue(lines.map((t,i)=>Object.assign(()=>{const u=utter(t,S.slow);u.onstart=()=>hl(i);u.onend=()=>{if(i===lines.length-1)hl(-1)};return u},{len:String(t).length})))}
 function hl(i){document.querySelectorAll(".line").forEach((el,j)=>el.classList.toggle("hl",j===i))}
 
 /* ================= SPEAKING CHECK ================= */
@@ -1535,6 +1580,9 @@ document.addEventListener("click",e=>{
   case "levelup":startLevelUp();break;
   case "ailesson":createAiLesson(b.dataset.news==="1");break;
   case "tab":setTab(b.dataset.tab);break;
+  case "pl-pause":pausePlay();break;
+  case "pl-resume":resumePlay();break;
+  case "pl-stop":stopPlay();break;
   case "lessonlv":LESSON_LV=+b.dataset.lv;home();break;
   case "pinok":pinDone(true);break;
   case "pincancel":pinDone(false);break;
@@ -1557,7 +1605,7 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet();if(e.ke
 function selectCode(){const el=document.querySelector(".codebox");if(!el)return;const r=document.createRange();r.selectNodeContents(el);const sel=getSelection();sel.removeAllRanges();sel.addRange(r)}
 /* Show the tab bar only on the four tab pages, never inside lessons or exercises. */
 const tabbar=document.getElementById("tabbar");
-function syncTabbar(){const on=!!view.querySelector(".tabpage");tabbar.hidden=!on;document.body.classList.toggle("has-tabs",on);if(on)tabbar.innerHTML=tabbarHTML()}
+function syncTabbar(){const on=!!view.querySelector(".tabpage");tabbar.hidden=!on;document.body.classList.toggle("has-tabs",on);if(on)tabbar.innerHTML=tabbarHTML();if(PLAY.state==="paused")stopPlay();else syncPlayer()}
 new MutationObserver(syncTabbar).observe(view,{childList:true});
 home();
 pullOnStart();
